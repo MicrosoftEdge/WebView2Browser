@@ -1,0 +1,84 @@
+#controls-bar {
+    display: flex;
+    justify-content: space-between;
+    flex-direction: row;
+    height: 40px;
+    background-color: rgb(230, 230, 230);
+}
+
+.btn {
+    display: inline-block;
+    margin: 0;
+    border: none;
+    outline: none;
+    height: 40px;
+    width: 40px;
+
+    background-color: red;
+}
+
+.controls-group {
+    display: inline-block;
+    height: 40px;
+}
+
+#nav-controls-container {
+    align-self: flex-start;
+    padding-left: 10px;
+}
+
+#manage-controls-container {
+    align-self: flex-end;
+    padding-right: 10px;
+}
+
+.btn:hover {
+    background-color: blue;
+}
+
+#address-bar-container {
+    display: inline-block;
+    height: calc(inherit - 10px);
+    min-width: 400px;
+    width: 70%;
+    max-width: calc(100% - 250px);
+
+    position: relative;
+    align-self: center;
+}
+
+.icn {
+    display: inline-block;
+    margin: 2px;
+    border-radius: 5px;
+    position: absolute;
+    top: 0;
+    width: 26px;
+    height: 26px;
+    background-color: rgb(200, 200, 200);
+}
+
+#icn-favicon {
+    left: 30px;
+}
+
+#address-form {
+    margin: 0;
+}
+
+#address-field {
+    display: inline-block;
+    margin: 0;
+    border: 1px solid gray;
+    border-radius: 5px;
+    padding: 0;
+    padding-left: 62px;
+
+    height: 30px;
+    width: 100%;
+}
+
+#address-field:focus {
+    outline: none;
+    box-shadow: 0 0 3px dodgerblue;
+}

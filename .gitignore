@@ -1,0 +1,15 @@
+Release/
+Debug/
+ipch/
+x64/
+x86/
+.vs/
+
+// Override root .gitignore to ensure we pick up changes for the sample app
+!*.sln
+!*.vcxproj
+!*.vcxproj.filters
+!packages/**/*
+
+// Ignore the binary generated version of the resource (.rc) file
+*.aps
