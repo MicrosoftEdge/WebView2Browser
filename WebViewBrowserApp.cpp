@@ -7,7 +7,6 @@
 
 #include "BrowserWindow.h"
 #include "WebViewBrowserApp.h"
-#include "framework.h"
 
 using namespace Microsoft::WRL;
 

@@ -3,7 +3,6 @@
 // found in the LICENSE file.
 
 #include "BrowserWindow.h"
-#include <wrl.h>
 
 using namespace Microsoft::WRL;
 
@@ -53,7 +52,6 @@ LRESULT CALLBACK BrowserWindow::WndProcStatic(HWND hWnd, UINT message, WPARAM wP
     // Get the ptr to the BrowserWindow instance who created this hWnd
     // The pointer was set when the hWnd was created during InitInstance
     BrowserWindow* browser_window = reinterpret_cast<BrowserWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
-
     if (browser_window != nullptr)
     {
         return browser_window->WndProc(hWnd, message, wParam, lParam); // forward message to instance-aware WndProc
@@ -228,7 +226,6 @@ void BrowserWindow::InitUIWebView(_In_ HWND hWnd, _In_ HINSTANCE hInst)
                     m_uiWebview = webview;
                     RETURN_IF_FAILED(m_uiWebview->add_WebMessageReceived(m_uiMessageBroker.Get(), &m_uiMessageBrokerToken));
                     ResizeUIWebView(hWnd);
-
                     WCHAR path[MAX_PATH];
                     GetModuleFileNameW(m_hInst, path, MAX_PATH);
                     std::wstring pathName(path);
@@ -264,8 +261,31 @@ void BrowserWindow::SetUIMessageBroker()
         {
         case MG_NAVIGATE:
         {
-            LPCTSTR uri = args.at(L"uri").as_string().c_str();
-            THROW_IF_FAILED(m_activeTab->m_contentWebview->Navigate(uri));
+            std::wstring uri(args.at(L"uri").as_string());
+            if (!SUCCEEDED(m_activeTab->m_contentWebview->Navigate(uri.c_str())))
+            {
+                THROW_IF_FAILED(m_activeTab->m_contentWebview->Navigate(args.at(L"encodedSearchURI").as_string().c_str()));
+            }
+        }
+        break;
+        case MG_GO_FORWARD:
+        {
+            THROW_IF_FAILED(m_activeTab->m_contentWebview->GoForward());
+        }
+        break;
+        case MG_GO_BACK:
+        {
+            THROW_IF_FAILED(m_activeTab->m_contentWebview->GoBack());
+        }
+        break;
+        case MG_RELOAD:
+        {
+            THROW_IF_FAILED(m_activeTab->m_contentWebview->Reload());
+        }
+        break;
+        case MG_CANCEL:
+        {
+            THROW_IF_FAILED(m_activeTab->m_contentWebview->CallDevToolsProtocolMethod(L"Page.stopLoading", L"{}", nullptr));
         }
         break;
         default:
@@ -289,10 +309,48 @@ void BrowserWindow::HandleTabURIUpdate(IWebView2WebView* webview)
     jsonObj[L"args"] = web::json::value::parse(L"{}");
     jsonObj[L"args"][L"uri"] = web::json::value(uri.get());
 
+    BOOL canGoForward = FALSE;
+    THROW_IF_FAILED(webview->get_CanGoForward(&canGoForward));
+    jsonObj[L"args"][L"canGoForward"] = web::json::value::boolean(canGoForward);
+
+    BOOL canGoBack = FALSE;
+    THROW_IF_FAILED(webview->get_CanGoBack(&canGoBack));
+    jsonObj[L"args"][L"canGoBack"] = web::json::value::boolean(canGoBack);
+
     utility::stringstream_t stream;
     jsonObj.serialize(stream);
 
     THROW_IF_FAILED(m_uiWebview->PostWebMessageAsJson(stream.str().c_str()));
+}
+
+void BrowserWindow::HandleTabNavStarting(IWebView2WebView* webview)
+{
+    if (webview == m_activeTab->m_contentWebview.Get())
+    {
+        web::json::value jsonObj = web::json::value::parse(L"{}");
+        jsonObj[L"message"] = web::json::value(MG_NAV_STARTING);
+        jsonObj[L"args"] = web::json::value::parse(L"{}");
+
+        utility::stringstream_t stream;
+        jsonObj.serialize(stream);
+
+        THROW_IF_FAILED(m_uiWebview->PostWebMessageAsJson(stream.str().c_str()));
+    }
+}
+
+void BrowserWindow::HandleTabNavCompleted(IWebView2WebView* webview)
+{
+    if (webview == m_activeTab->m_contentWebview.Get())
+    {
+        web::json::value jsonObj = web::json::value::parse(L"{}");
+        jsonObj[L"message"] = web::json::value(MG_NAV_COMPLETED);
+        jsonObj[L"args"] = web::json::value::parse(L"{}");
+
+        utility::stringstream_t stream;
+        jsonObj.serialize(stream);
+
+        THROW_IF_FAILED(m_uiWebview->PostWebMessageAsJson(stream.str().c_str()));
+    }
 }
 
 void BrowserWindow::ResizeUIWebView(HWND hWnd)

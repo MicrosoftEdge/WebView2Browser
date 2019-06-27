@@ -6,15 +6,40 @@
     background-color: rgb(230, 230, 230);
 }
 
-.btn {
+.btn, .btn-disabled, .btn-cancel {
     display: inline-block;
-    margin: 0;
     border: none;
+    margin: 5px 0;
+    border-radius: 5px;
     outline: none;
-    height: 40px;
-    width: 40px;
+    height: 30px;
+    width: 30px;
+    
+    background-size: 100%;
+}
 
-    background-color: red;
+#btn-forward {
+    background-image: url('img/goForward.png');
+}
+
+.btn-disabled#btn-forward {
+    background-image: url('img/goForward_disabled.png');
+}
+
+#btn-back {
+    background-image: url('img/goBack.png');
+}
+
+.btn-disabled#btn-back {
+    background-image: url('img/goBack_disabled.png');
+}
+
+#btn-reload {
+    background-image: url('img/reload.png');
+}
+
+.btn-cancel#btn-reload {
+    background-image: url('img/cancel.png');
 }
 
 .controls-group {
@@ -32,8 +57,8 @@
     padding-right: 10px;
 }
 
-.btn:hover {
-    background-color: blue;
+.btn:hover, .btn-cancel:hover {
+    background-color: rgb(200, 200, 200);
 }
 
 #address-bar-container {

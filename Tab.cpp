@@ -28,16 +28,31 @@ void Tab::Init(IWebView2Environment* env)
             return result;
         }
         m_contentWebview = webview;
+        BrowserWindow* browserWindow = reinterpret_cast<BrowserWindow*>(GetWindowLongPtr(m_parentHWnd, GWLP_USERDATA));
 
         // Register event handler for doc state change
         THROW_IF_FAILED(m_contentWebview->add_DocumentStateChanged(Callback<IWebView2DocumentStateChangedEventHandler>(
-            [this](IWebView2WebView* webview, IWebView2DocumentStateChangedEventArgs* args) -> HRESULT
+            [browserWindow](IWebView2WebView* webview, IWebView2DocumentStateChangedEventArgs* args) -> HRESULT
         {
-            BrowserWindow* browser_window = reinterpret_cast<BrowserWindow*>(GetWindowLongPtr(m_parentHWnd, GWLP_USERDATA));
-            browser_window->HandleTabURIUpdate(webview);
+            browserWindow->HandleTabURIUpdate(webview);
 
             return S_OK;
         }).Get(), &m_uriUpdateForwarderToken));
+
+        THROW_IF_FAILED(m_contentWebview->add_NavigationStarting(Callback<IWebView2NavigationStartingEventHandler>(
+            [browserWindow](IWebView2WebView* webview, IWebView2NavigationStartingEventArgs* args) -> HRESULT
+        {
+            browserWindow->HandleTabNavStarting(webview);
+
+            return S_OK;
+        }).Get(), &m_navStartingToken));
+
+        THROW_IF_FAILED(m_contentWebview->add_NavigationCompleted(Callback<IWebView2NavigationCompletedEventHandler>(
+            [browserWindow](IWebView2WebView* webview, IWebView2NavigationCompletedEventArgs* args) -> HRESULT
+        {
+            browserWindow->HandleTabNavCompleted(webview);
+            return S_OK;
+        }).Get(), &m_navCompletedToken));
         ResizeWebView();
 
         THROW_IF_FAILED(m_contentWebview->Navigate(L"https://www.bing.com"));

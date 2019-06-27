@@ -18,6 +18,8 @@ public:
 
     static BOOL LaunchWindow(_In_ HINSTANCE hInstance, _In_ int nCmdShow);
     void HandleTabURIUpdate(IWebView2WebView* webview);
+    void HandleTabNavStarting(IWebView2WebView* webview);
+    void HandleTabNavCompleted(IWebView2WebView* webview);
     void CheckFailure(HRESULT hr);
 protected:
     HINSTANCE m_hInst = nullptr;                     // current app instance

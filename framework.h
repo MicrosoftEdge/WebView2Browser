@@ -31,3 +31,9 @@
 
 #define MG_NAVIGATE 1
 #define MG_UPDATE_URI 2
+#define MG_GO_FORWARD 3
+#define MG_GO_BACK 4
+#define MG_NAV_STARTING 5
+#define MG_NAV_COMPLETED 6
+#define MG_RELOAD 7
+#define MG_CANCEL 8

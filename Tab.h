@@ -16,6 +16,8 @@ public:
 protected:
     HWND m_parentHWnd = nullptr;
     EventRegistrationToken m_uriUpdateForwarderToken = {};
+    EventRegistrationToken m_navStartingToken = {};
+    EventRegistrationToken m_navCompletedToken = {};
 
     void Init(IWebView2Environment* env);
 };
