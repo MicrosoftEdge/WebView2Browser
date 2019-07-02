@@ -5,3 +5,11 @@ html, body {
 
     height: 70px;
 }
+
+p {
+    margin: 0;
+}
+
+* {
+    user-select: none;
+}

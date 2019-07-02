@@ -11,13 +11,14 @@ class Tab
 public:
     Microsoft::WRL::ComPtr<IWebView2WebView> m_contentWebview;
 
-    static std::unique_ptr<Tab> CreateNewTab(HWND hWnd, IWebView2Environment* env);
+    static std::unique_ptr<Tab> CreateNewTab(HWND hWnd, IWebView2Environment* env, size_t id, bool shouldBeActive);
     void ResizeWebView();
 protected:
     HWND m_parentHWnd = nullptr;
+    size_t m_tabId = INVALID_TAB_ID;
     EventRegistrationToken m_uriUpdateForwarderToken = {};
     EventRegistrationToken m_navStartingToken = {};
     EventRegistrationToken m_navCompletedToken = {};
 
-    void Init(IWebView2Environment* env);
+    void Init(IWebView2Environment* env, bool shouldBeActive);
 };

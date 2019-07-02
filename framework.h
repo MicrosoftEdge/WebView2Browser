@@ -19,6 +19,7 @@
 #include <memory>
 #include <stdlib.h>
 #include <tchar.h>
+#include <map>
 
 // App specific includes
 #include "resource.h"
@@ -29,6 +30,7 @@
 #define MIN_WINDOW_HEIGHT 400
 #define MAX_LOADSTRING 256
 
+#define INVALID_TAB_ID 0
 #define MG_NAVIGATE 1
 #define MG_UPDATE_URI 2
 #define MG_GO_FORWARD 3
@@ -37,3 +39,8 @@
 #define MG_NAV_COMPLETED 6
 #define MG_RELOAD 7
 #define MG_CANCEL 8
+#define MG_CREATE_TAB 10
+#define MG_UPDATE_TAB 11
+#define MG_SWITCH_TAB 12
+#define MG_CLOSE_TAB 13
+#define MG_CLOSE_WINDOW 14

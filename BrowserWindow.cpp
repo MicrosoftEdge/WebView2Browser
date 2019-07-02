@@ -3,11 +3,13 @@
 // found in the LICENSE file.
 
 #include "BrowserWindow.h"
+#include "shlobj.h"
 
 using namespace Microsoft::WRL;
 
 WCHAR BrowserWindow::s_windowClass[] = { 0 };
 WCHAR BrowserWindow::s_title[] = { 0 };
+size_t BrowserWindow::s_windowInstanceCount = 0;
 
 //
 //  FUNCTION: RegisterClass()
@@ -49,8 +51,8 @@ ATOM BrowserWindow::RegisterClass(_In_ HINSTANCE hInstance)
 //
 LRESULT CALLBACK BrowserWindow::WndProcStatic(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    // Get the ptr to the BrowserWindow instance who created this hWnd
-    // The pointer was set when the hWnd was created during InitInstance
+    // Get the ptr to the BrowserWindow instance who created this hWnd.
+    // The pointer was set when the hWnd was created during InitInstance.
     BrowserWindow* browser_window = reinterpret_cast<BrowserWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
     if (browser_window != nullptr)
     {
@@ -58,7 +60,6 @@ LRESULT CALLBACK BrowserWindow::WndProcStatic(HWND hWnd, UINT message, WPARAM wP
     }
     else
     {
-        OutputDebugString(L"hWnd does not have associated BrowserWindow instance\n");
         return DefWindowProc(hWnd, message, wParam, lParam);
     }
 }
@@ -88,25 +89,16 @@ LRESULT CALLBACK BrowserWindow::WndProc(HWND hWnd, UINT message, WPARAM wParam, 
     case WM_DPICHANGED:
     {
         UpdateMinWindowSize(hWnd);
-        if (m_uiWebview != nullptr)
-        {
-            ResizeUIWebView(hWnd);
-        }
-        if (m_activeTab != nullptr)
-        {
-            m_activeTab->ResizeWebView();
-        }
     }
-    break;
     case WM_SIZE:
     {
         if (m_uiWebview != nullptr)
         {
             ResizeUIWebView(hWnd);
         }
-        if (m_activeTab != nullptr)
+        if (m_tabs.find(m_activeTabId) != m_tabs.end())
         {
-            m_activeTab->ResizeWebView();
+            m_tabs.at(m_activeTabId)->ResizeWebView();
         }
     }
     break;
@@ -124,6 +116,16 @@ LRESULT CALLBACK BrowserWindow::WndProc(HWND hWnd, UINT message, WPARAM wParam, 
         }
     }
     break;
+    case WM_NCDESTROY:
+    {
+        SetWindowLongPtr(hWnd, GWLP_USERDATA, NULL);
+        --s_windowInstanceCount;
+        delete this;
+        if (s_windowInstanceCount == 0)
+        {
+            PostQuitMessage(0);
+        }
+    }
     case WM_PAINT:
     {
         PAINTSTRUCT ps;
@@ -132,12 +134,6 @@ LRESULT CALLBACK BrowserWindow::WndProc(HWND hWnd, UINT message, WPARAM wParam, 
         EndPaint(hWnd, &ps);
     }
     break;
-    case WM_DESTROY:
-    {
-        // TO DO: close only the interacted browser window
-        PostQuitMessage(0);
-    }
-        break;
     default:
     {
         return DefWindowProc(hWnd, message, wParam, lParam);
@@ -150,13 +146,15 @@ LRESULT CALLBACK BrowserWindow::WndProc(HWND hWnd, UINT message, WPARAM wParam, 
 
 BOOL BrowserWindow::LaunchWindow(_In_ HINSTANCE hInstance, _In_ int nCmdShow)
 {
+    // BrowserWindow keeps a reference to itself in its host window and will
+    // delete itself when the window is destroyed.
     BrowserWindow* window = new BrowserWindow();
     if (!window->InitInstance(hInstance, nCmdShow))
     {
         delete window;
         return FALSE;
     }
-    // TO DO: make sure the instance is destroyed properly
+    ++s_windowInstanceCount;
     return TRUE;
 }
 
@@ -177,69 +175,98 @@ BOOL BrowserWindow::InitInstance(HINSTANCE hInstance, int nCmdShow)
 
     SetUIMessageBroker();
 
-    HWND hWnd = CreateWindowW(s_windowClass, s_title, WS_OVERLAPPEDWINDOW,
+    m_hWnd = CreateWindowW(s_windowClass, s_title, WS_OVERLAPPEDWINDOW,
         CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, m_hInst, nullptr);
 
-    if (!hWnd)
+    if (!m_hWnd)
     {
         return FALSE;
     }
 
     // Make the BrowserWindow instance ptr available through the hWnd
-    SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
+    SetWindowLongPtr(m_hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
 
     // TO DO: remove the menu from resources
-    SetMenu(hWnd, nullptr);
-    UpdateMinWindowSize(hWnd);
-    ShowWindow(hWnd, nCmdShow);
-    UpdateWindow(hWnd);
+    SetMenu(m_hWnd, nullptr);
+    UpdateMinWindowSize(m_hWnd);
+    ShowWindow(m_hWnd, nCmdShow);
+    UpdateWindow(m_hWnd);
 
-    InitUIWebView(hWnd, m_hInst);
+    // Get directory for user data. This will be kept separated from the
+    // directory for the browser UI data.
+    std::wstring userDataDirectory = GetAppDataDirectory();
+    userDataDirectory.append(L"\\User Data");
 
-    // TO DO: use a separate env for content webviews
-    m_activeTab = Tab::CreateNewTab(hWnd, m_uiEnv.Get());
+    // Create WebView environment for web content requested by the user. All
+    // tabs will be created from this environment and kept isolated from the
+    // browser UI. This enviroment is created first so the UI can request new
+    // tabs when it's ready.
+    HRESULT hr = CreateWebView2EnvironmentWithDetails(nullptr, userDataDirectory.c_str(), WEBVIEW2_RELEASE_CHANNEL_PREFERENCE_STABLE,
+        L"", Callback<IWebView2CreateWebView2EnvironmentCompletedHandler>(
+            [this](HRESULT result, IWebView2Environment* env) -> HRESULT
+    {
+        RETURN_IF_FAILED(result);
+
+        m_contentEnv = env;
+        InitUIWebView();
+        return S_OK;
+    }).Get());
+
+    if (!SUCCEEDED(hr))
+    {
+        return FALSE;
+    }
 
     return TRUE;
 }
 
-void BrowserWindow::InitUIWebView(_In_ HWND hWnd, _In_ HINSTANCE hInst)
+void BrowserWindow::InitUIWebView()
 {
-    THROW_IF_FAILED(CreateWebView2EnvironmentWithDetails(L".", nullptr, WEBVIEW2_RELEASE_CHANNEL_PREFERENCE_STABLE,
+    // Get data directory for browser UI data
+    std::wstring browserDataDirectory = GetAppDataDirectory();
+    browserDataDirectory.append(L"\\Browser Data");
+
+    // Create WebView environment for browser UI. A separate data directory is
+    // used to isolate the browser UI from web content requested by the user.
+    THROW_IF_FAILED(CreateWebView2EnvironmentWithDetails(nullptr, browserDataDirectory.c_str(), WEBVIEW2_RELEASE_CHANNEL_PREFERENCE_STABLE,
         L"", Callback<IWebView2CreateWebView2EnvironmentCompletedHandler>(
-        [hWnd, this](HRESULT result, IWebView2Environment* env) -> HRESULT {
+            [this](HRESULT result, IWebView2Environment* env) -> HRESULT
+    {
+        if (!SUCCEEDED(result))
+        {
+            OutputDebugString(L"WebView environment creation failed\n");
+            return result;
+        }
+        // Environment is ready, create the WebView
+        m_uiEnv = env;
+
+        THROW_IF_FAILED(env->CreateWebView(m_hWnd, Callback<IWebView2CreateWebViewCompletedHandler>(
+            [this](HRESULT result, IWebView2WebView* webview) -> HRESULT
+        {
             if (!SUCCEEDED(result))
             {
-                OutputDebugString(L"WebView environment creation failed\n");
+                OutputDebugString(L"UI WebView creation failed\n");
                 return result;
             }
-            // Environment is ready, create the WebView
-            m_uiEnv = env;
+            // WebView created
+            m_uiWebview = webview;
+            RETURN_IF_FAILED(m_uiWebview->add_WebMessageReceived(m_uiMessageBroker.Get(), &m_uiMessageBrokerToken));
+            ResizeUIWebView(m_hWnd);
 
-            THROW_IF_FAILED(env->CreateWebView(hWnd, Callback<IWebView2CreateWebViewCompletedHandler>(
-                [hWnd, this](HRESULT result, IWebView2WebView* webview) -> HRESULT {
-                    if (!SUCCEEDED(result))
-                    {
-                        OutputDebugString(L"UI WebView creation failed\n");
-                        return result;
-                    }
-                    // WebView created
-                    m_uiWebview = webview;
-                    RETURN_IF_FAILED(m_uiWebview->add_WebMessageReceived(m_uiMessageBroker.Get(), &m_uiMessageBrokerToken));
-                    ResizeUIWebView(hWnd);
-                    WCHAR path[MAX_PATH];
-                    GetModuleFileNameW(m_hInst, path, MAX_PATH);
-                    std::wstring pathName(path);
+            WCHAR path[MAX_PATH];
+            GetModuleFileNameW(m_hInst, path, MAX_PATH);
+            std::wstring pathName(path);
 
-                    std::size_t index = pathName.find_last_of(L"\\") + 1;
-                    pathName.replace(index, pathName.length(), L"ui_bar\\bar.html");
+            std::size_t index = pathName.find_last_of(L"\\") + 1;
+            pathName.replace(index, pathName.length(), L"ui_bar\\bar.html");
 
-                    RETURN_IF_FAILED(m_uiWebview->Navigate(pathName.c_str()));
-
-                return S_OK;
-                }).Get()));
+            RETURN_IF_FAILED(m_uiWebview->Navigate(pathName.c_str()));
 
             return S_OK;
         }).Get()));
+
+        return S_OK;
+    }).Get()));
 }
 
 // Set the message broker for the UI webview. This will capture messages from ui web content.
@@ -259,33 +286,58 @@ void BrowserWindow::SetUIMessageBroker()
 
         switch (message)
         {
+        case MG_CREATE_TAB:
+        {
+            size_t id = args.at(L"tabId").as_number().to_uint32();
+            bool shouldBeActive = args.at(L"active").as_bool();
+            std::unique_ptr<Tab> newTab = Tab::CreateNewTab(m_hWnd, m_contentEnv.Get(), id, shouldBeActive);
+            m_tabs.insert(std::pair<size_t,std::unique_ptr<Tab>>(id, std::move(newTab)));
+        }
+        break;
         case MG_NAVIGATE:
         {
             std::wstring uri(args.at(L"uri").as_string());
-            if (!SUCCEEDED(m_activeTab->m_contentWebview->Navigate(uri.c_str())))
+            if (!SUCCEEDED(m_tabs.at(m_activeTabId)->m_contentWebview->Navigate(uri.c_str())))
             {
-                THROW_IF_FAILED(m_activeTab->m_contentWebview->Navigate(args.at(L"encodedSearchURI").as_string().c_str()));
+                THROW_IF_FAILED(m_tabs.at(m_activeTabId)->m_contentWebview->Navigate(args.at(L"encodedSearchURI").as_string().c_str()));
             }
         }
         break;
         case MG_GO_FORWARD:
         {
-            THROW_IF_FAILED(m_activeTab->m_contentWebview->GoForward());
+            THROW_IF_FAILED(m_tabs.at(m_activeTabId)->m_contentWebview->GoForward());
         }
         break;
         case MG_GO_BACK:
         {
-            THROW_IF_FAILED(m_activeTab->m_contentWebview->GoBack());
+            THROW_IF_FAILED(m_tabs.at(m_activeTabId)->m_contentWebview->GoBack());
         }
         break;
         case MG_RELOAD:
         {
-            THROW_IF_FAILED(m_activeTab->m_contentWebview->Reload());
+            THROW_IF_FAILED(m_tabs.at(m_activeTabId)->m_contentWebview->Reload());
         }
         break;
         case MG_CANCEL:
         {
-            THROW_IF_FAILED(m_activeTab->m_contentWebview->CallDevToolsProtocolMethod(L"Page.stopLoading", L"{}", nullptr));
+            THROW_IF_FAILED(m_tabs.at(m_activeTabId)->m_contentWebview->CallDevToolsProtocolMethod(L"Page.stopLoading", L"{}", nullptr));
+        }
+        break;
+        case MG_SWITCH_TAB:
+        {
+            size_t tabId = args.at(L"tabId").as_number().to_uint32();
+
+            SwitchToTab(tabId);
+        }
+        break;
+        case MG_CLOSE_TAB:
+        {
+            m_tabs.erase(args.at(L"tabId").as_number().to_uint32());
+        }
+        break;
+        case MG_CLOSE_WINDOW:
+        {
+            PostMessage(m_hWnd, WM_CLOSE, 0, 0);
         }
         break;
         default:
@@ -299,7 +351,21 @@ void BrowserWindow::SetUIMessageBroker()
     });
 }
 
-void BrowserWindow::HandleTabURIUpdate(IWebView2WebView* webview)
+void BrowserWindow::SwitchToTab(size_t tabId)
+{
+    size_t previousActiveTab = m_activeTabId;
+
+    m_activeTabId = tabId;
+    m_tabs.at(tabId)->ResizeWebView();
+    THROW_IF_FAILED(m_tabs.at(tabId)->m_contentWebview->put_IsVisible(TRUE));
+
+    if (previousActiveTab != INVALID_TAB_ID)
+    {
+        THROW_IF_FAILED(m_tabs.at(previousActiveTab)->m_contentWebview->put_IsVisible(FALSE));
+    }
+}
+
+void BrowserWindow::HandleTabURIUpdate(size_t tabId, IWebView2WebView* webview)
 {
     wil::unique_cotaskmem_string uri;
     THROW_IF_FAILED(webview->get_Source(&uri));
@@ -307,6 +373,7 @@ void BrowserWindow::HandleTabURIUpdate(IWebView2WebView* webview)
     web::json::value jsonObj = web::json::value::parse(L"{}");
     jsonObj[L"message"] = web::json::value(MG_UPDATE_URI);
     jsonObj[L"args"] = web::json::value::parse(L"{}");
+    jsonObj[L"args"][L"tabId"] = web::json::value::number(tabId);
     jsonObj[L"args"][L"uri"] = web::json::value(uri.get());
 
     BOOL canGoForward = FALSE;
@@ -323,33 +390,78 @@ void BrowserWindow::HandleTabURIUpdate(IWebView2WebView* webview)
     THROW_IF_FAILED(m_uiWebview->PostWebMessageAsJson(stream.str().c_str()));
 }
 
-void BrowserWindow::HandleTabNavStarting(IWebView2WebView* webview)
+void BrowserWindow::HandleTabNavStarting(size_t tabId, IWebView2WebView* webview)
 {
-    if (webview == m_activeTab->m_contentWebview.Get())
-    {
-        web::json::value jsonObj = web::json::value::parse(L"{}");
-        jsonObj[L"message"] = web::json::value(MG_NAV_STARTING);
-        jsonObj[L"args"] = web::json::value::parse(L"{}");
+    web::json::value jsonObj = web::json::value::parse(L"{}");
+    jsonObj[L"message"] = web::json::value(MG_NAV_STARTING);
+    jsonObj[L"args"] = web::json::value::parse(L"{}");
+    jsonObj[L"args"][L"tabId"] = web::json::value::number(tabId);
 
-        utility::stringstream_t stream;
-        jsonObj.serialize(stream);
+    utility::stringstream_t stream;
+    jsonObj.serialize(stream);
 
-        THROW_IF_FAILED(m_uiWebview->PostWebMessageAsJson(stream.str().c_str()));
-    }
+    THROW_IF_FAILED(m_uiWebview->PostWebMessageAsJson(stream.str().c_str()));
 }
 
-void BrowserWindow::HandleTabNavCompleted(IWebView2WebView* webview)
+void BrowserWindow::HandleTabNavCompleted(size_t tabId, IWebView2WebView* webview)
 {
-    if (webview == m_activeTab->m_contentWebview.Get())
+    std::wstring getTitleScript(
+        // Look for a title tag
+        L"(() => {"
+        L"    const titleTag = document.getElementsByTagName('title')[0];"
+        L"    if (titleTag) {"
+        L"        return titleTag.innerHTML;"
+        L"    }"
+        // No title tag, look for the file name
+        L"    pathname = window.location.pathname;"
+        L"    var filename = pathname.split('/').pop();"
+        L"    if (filename) {"
+        L"        return filename;"
+        L"    }"
+        // No file name, look for the hostname
+        L"    const hostname =  window.location.hostname;"
+        L"    if (hostname) {"
+        L"        return hostname;"
+        L"    }"
+        // Fallback: let the UI use a generic title
+        L"    return '';"
+        L"})();"
+    );
+
+    THROW_IF_FAILED(webview->ExecuteScript(getTitleScript.c_str(), Callback<IWebView2ExecuteScriptCompletedHandler>(
+        [this, webview, tabId](HRESULT error, PCWSTR result) -> HRESULT
     {
+        RETURN_IF_FAILED(error);
+
         web::json::value jsonObj = web::json::value::parse(L"{}");
-        jsonObj[L"message"] = web::json::value(MG_NAV_COMPLETED);
+        jsonObj[L"message"] = web::json::value(MG_UPDATE_TAB);
         jsonObj[L"args"] = web::json::value::parse(L"{}");
+        jsonObj[L"args"][L"title"] = web::json::value::parse(result);
+        jsonObj[L"args"][L"tabId"] = web::json::value::number(tabId);
 
         utility::stringstream_t stream;
         jsonObj.serialize(stream);
 
         THROW_IF_FAILED(m_uiWebview->PostWebMessageAsJson(stream.str().c_str()));
+        return S_OK;
+    }).Get()));
+
+    web::json::value jsonObj = web::json::value::parse(L"{}");
+    jsonObj[L"message"] = web::json::value(MG_NAV_COMPLETED);
+    jsonObj[L"args"] = web::json::value::parse(L"{}");
+    jsonObj[L"args"][L"tabId"] = web::json::value::number(tabId);
+
+    utility::stringstream_t stream;
+    jsonObj.serialize(stream);
+
+    THROW_IF_FAILED(m_uiWebview->PostWebMessageAsJson(stream.str().c_str()));
+}
+
+void BrowserWindow::HandleTabCreated(size_t tabId, bool shouldBeActive)
+{
+    if (shouldBeActive)
+    {
+        SwitchToTab(tabId);
     }
 }
 
@@ -376,4 +488,23 @@ void BrowserWindow::CheckFailure(HRESULT hr)
         StringCchPrintf(message, ARRAYSIZE(message), L"Error: 0x%x", hr);
         MessageBoxW(nullptr, message, nullptr, MB_OK);
     }
+}
+
+std::wstring BrowserWindow::GetAppDataDirectory()
+{
+    TCHAR path[MAX_PATH];
+    std::wstring dataDirectory;
+    HRESULT hr = SHGetFolderPath(nullptr, CSIDL_APPDATA, NULL, 0, path);
+    if (SUCCEEDED(hr))
+    {
+        dataDirectory = std::wstring(path);
+        dataDirectory.append(L"\\Microsoft\\");
+    }
+    else
+    {
+        dataDirectory = std::wstring(L".\\");
+    }
+
+    dataDirectory.append(s_title);
+    return dataDirectory;
 }

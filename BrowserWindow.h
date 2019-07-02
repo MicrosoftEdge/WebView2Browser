@@ -17,12 +17,16 @@ public:
     LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
     static BOOL LaunchWindow(_In_ HINSTANCE hInstance, _In_ int nCmdShow);
-    void HandleTabURIUpdate(IWebView2WebView* webview);
-    void HandleTabNavStarting(IWebView2WebView* webview);
-    void HandleTabNavCompleted(IWebView2WebView* webview);
+    static std::wstring GetAppDataDirectory();
+    void HandleTabURIUpdate(size_t tabId, IWebView2WebView* webview);
+    void HandleTabNavStarting(size_t tabId, IWebView2WebView* webview);
+    void HandleTabNavCompleted(size_t tabId, IWebView2WebView* webview);
+    void HandleTabCreated(size_t tabId, bool shouldBeActive);
     void CheckFailure(HRESULT hr);
 protected:
     HINSTANCE m_hInst = nullptr;                     // current app instance
+    HWND m_hWnd = nullptr;
+    static size_t s_windowInstanceCount;
 
     static WCHAR s_windowClass[MAX_LOADSTRING];    // the window class name
     static WCHAR s_title[MAX_LOADSTRING];          // The title bar text
@@ -31,16 +35,19 @@ protected:
     int m_minWindowHeight = 0;
 
     Microsoft::WRL::ComPtr<IWebView2Environment> m_uiEnv;
+    Microsoft::WRL::ComPtr<IWebView2Environment> m_contentEnv;
     Microsoft::WRL::ComPtr<IWebView2WebView> m_uiWebview;
-    std::unique_ptr<Tab> m_activeTab;
+    std::map<size_t,std::unique_ptr<Tab>> m_tabs;
+    size_t m_activeTabId = 0;
 
     EventRegistrationToken m_uiMessageBrokerToken = {};  // token for the registered UI message handler of this window
     Microsoft::WRL::ComPtr<IWebView2WebMessageReceivedEventHandler> m_uiMessageBroker;
 
     BOOL InitInstance(HINSTANCE hInstance, int nCmdShow);
-    void InitUIWebView(_In_ HWND hWnd, _In_ HINSTANCE hInst);
+    void InitUIWebView();
 
     void SetUIMessageBroker();
     void ResizeUIWebView(HWND hWnd);
     void UpdateMinWindowSize(HWND hWnd);
+    void SwitchToTab(size_t tabId);
 };

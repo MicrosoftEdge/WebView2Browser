@@ -6,5 +6,10 @@ const commands = {
     MG_NAV_STARTING: 5,
     MG_NAV_COMPLETED: 6,
     MG_RELOAD: 7,
-    MG_CANCEL: 8
+    MG_CANCEL: 8,
+    MG_CREATE_TAB: 10,
+    MG_UPDATE_TAB: 11,
+    MG_SWITCH_TAB: 12,
+    MG_CLOSE_TAB: 13,
+    MG_CLOSE_WINDOW: 14
 };
