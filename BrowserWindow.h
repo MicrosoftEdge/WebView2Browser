@@ -11,6 +11,8 @@ class BrowserWindow
 {
 public:
     static const int c_uiBarHeight = 70;
+    static const int c_optionsDropdownHeight = 108;
+    static const int c_optionsDropdownWidth = 200;
 
     static ATOM RegisterClass(_In_ HINSTANCE hInstance);
     static LRESULT CALLBACK WndProcStatic(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
@@ -36,18 +38,25 @@ protected:
 
     Microsoft::WRL::ComPtr<IWebView2Environment> m_uiEnv;
     Microsoft::WRL::ComPtr<IWebView2Environment> m_contentEnv;
-    Microsoft::WRL::ComPtr<IWebView2WebView> m_uiWebview;
+    Microsoft::WRL::ComPtr<IWebView2WebView> m_controlsWebView;
+    Microsoft::WRL::ComPtr<IWebView2WebView> m_optionsWebView;
     std::map<size_t,std::unique_ptr<Tab>> m_tabs;
     size_t m_activeTabId = 0;
 
-    EventRegistrationToken m_uiMessageBrokerToken = {};  // token for the registered UI message handler of this window
+    EventRegistrationToken m_controlsUIMessageBrokerToken = {};  // token for the UI message handler in controls WebView
+    EventRegistrationToken m_optionsUIMessageBrokerToken = {};  // token for the UI message handler in options WebView
+    EventRegistrationToken m_lostOptionsFocus = {};  // token for the lost focus handler in options WebView
     Microsoft::WRL::ComPtr<IWebView2WebMessageReceivedEventHandler> m_uiMessageBroker;
 
+    std::wstring GetFullPathFor(LPCWSTR relativePath);
     BOOL InitInstance(HINSTANCE hInstance, int nCmdShow);
-    void InitUIWebView();
+    void InitUIWebViews();
+    void CreateBrowserControlsWebView();
+    void CreateBrowserOptionsWebView();
 
     void SetUIMessageBroker();
-    void ResizeUIWebView(HWND hWnd);
-    void UpdateMinWindowSize(HWND hWnd);
+    void ResizeUIWebViews();
+    void UpdateMinWindowSize();
     void SwitchToTab(size_t tabId);
+    int GetDPIAwareBound(int bound);
 };

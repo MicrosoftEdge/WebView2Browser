@@ -75,6 +75,14 @@ const messageHandler = event => {
                 }
             }
             break;
+        case commands.MG_OPTIONS_LOST_FOCUS:
+            let optionsButton = document.getElementById('btn-options');
+            if (optionsButton) {
+                if (optionsButton.className = 'btn-active') {
+                    toggleOptionsDropdown();
+                }
+            }
+            break;
     }
 };
 
@@ -263,7 +271,11 @@ function updateNavigationUIForTab(id, reason) {
 
     // udpate uri
     if (reason == commands.MG_UPDATE_URI || reason == commands.MG_SWITCH_TAB) {
-        document.getElementById('address-field').value = tab.uri;
+        let uriToShow = tab.uri;
+        if (uriToShow.startsWith('edge://')) {
+            uriToShow = 'browser://' + uriToShow.substring(7);
+        }
+        document.getElementById('address-field').value = uriToShow;
     }
 
     // update go back/forward
@@ -337,6 +349,32 @@ function createNewTab(shouldBeActive) {
     }
 }
 
+function toggleOptionsDropdown() {
+    const optionsButtonElement = document.getElementById('btn-options');
+    const elementClass = optionsButtonElement.className;
+
+    var message;
+    if (elementClass === 'btn') {
+        // Update UI
+        optionsButtonElement.className = 'btn-active';
+
+        message = {
+            message: commands.MG_SHOW_OPTIONS,
+            args: {}
+        };
+    } else {
+        // Update UI
+        optionsButtonElement.className = 'btn';
+
+        message = {
+            message:commands.MG_HIDE_OPTIONS,
+            args: {}
+        };
+    }
+
+    window.chrome.webview.postMessage(message);
+}
+
 function addUIListeners() {
     document.querySelector('#address-field').addEventListener('keypress', function (e) {
         var key = e.which || e.keyCode;
@@ -381,6 +419,10 @@ function addUIListeners() {
             };
             window.chrome.webview.postMessage(message);
         }
+    });
+
+    document.querySelector('#btn-options').addEventListener('click', function(e) {
+        toggleOptionsDropdown();
     });
 
     document.querySelector('#btn-new-tab').addEventListener('click', function(e) {

@@ -88,14 +88,11 @@ LRESULT CALLBACK BrowserWindow::WndProc(HWND hWnd, UINT message, WPARAM wParam, 
     break;
     case WM_DPICHANGED:
     {
-        UpdateMinWindowSize(hWnd);
+        UpdateMinWindowSize();
     }
     case WM_SIZE:
     {
-        if (m_uiWebview != nullptr)
-        {
-            ResizeUIWebView(hWnd);
-        }
+        ResizeUIWebViews();
         if (m_tabs.find(m_activeTabId) != m_tabs.end())
         {
             m_tabs.at(m_activeTabId)->ResizeWebView();
@@ -188,7 +185,7 @@ BOOL BrowserWindow::InitInstance(HINSTANCE hInstance, int nCmdShow)
 
     // TO DO: remove the menu from resources
     SetMenu(m_hWnd, nullptr);
-    UpdateMinWindowSize(m_hWnd);
+    UpdateMinWindowSize();
     ShowWindow(m_hWnd, nCmdShow);
     UpdateWindow(m_hWnd);
 
@@ -208,7 +205,7 @@ BOOL BrowserWindow::InitInstance(HINSTANCE hInstance, int nCmdShow)
         RETURN_IF_FAILED(result);
 
         m_contentEnv = env;
-        InitUIWebView();
+        InitUIWebViews();
         return S_OK;
     }).Get());
 
@@ -220,7 +217,7 @@ BOOL BrowserWindow::InitInstance(HINSTANCE hInstance, int nCmdShow)
     return TRUE;
 }
 
-void BrowserWindow::InitUIWebView()
+void BrowserWindow::InitUIWebViews()
 {
     // Get data directory for browser UI data
     std::wstring browserDataDirectory = GetAppDataDirectory();
@@ -240,30 +237,71 @@ void BrowserWindow::InitUIWebView()
         // Environment is ready, create the WebView
         m_uiEnv = env;
 
-        THROW_IF_FAILED(env->CreateWebView(m_hWnd, Callback<IWebView2CreateWebViewCompletedHandler>(
-            [this](HRESULT result, IWebView2WebView* webview) -> HRESULT
+        CreateBrowserControlsWebView();
+        CreateBrowserOptionsWebView();
+
+        return S_OK;
+    }).Get()));
+}
+
+void BrowserWindow::CreateBrowserControlsWebView()
+{
+    THROW_IF_FAILED(m_uiEnv->CreateWebView(m_hWnd, Callback<IWebView2CreateWebViewCompletedHandler>(
+        [this](HRESULT result, IWebView2WebView* webview) -> HRESULT
+    {
+        if (!SUCCEEDED(result))
         {
-            if (!SUCCEEDED(result))
-            {
-                OutputDebugString(L"UI WebView creation failed\n");
-                return result;
-            }
-            // WebView created
-            m_uiWebview = webview;
-            RETURN_IF_FAILED(m_uiWebview->add_WebMessageReceived(m_uiMessageBroker.Get(), &m_uiMessageBrokerToken));
-            ResizeUIWebView(m_hWnd);
+            OutputDebugString(L"Controls WebView creation failed\n");
+            return result;
+        }
+        // WebView created
+        m_controlsWebView = webview;
+        RETURN_IF_FAILED(m_controlsWebView->add_WebMessageReceived(m_uiMessageBroker.Get(), &m_controlsUIMessageBrokerToken));
+        ResizeUIWebViews();
 
-            WCHAR path[MAX_PATH];
-            GetModuleFileNameW(m_hInst, path, MAX_PATH);
-            std::wstring pathName(path);
+        std::wstring controlsPath = GetFullPathFor(L"ui_bar\\bar.html");
+        RETURN_IF_FAILED(m_controlsWebView->Navigate(controlsPath.c_str()));
 
-            std::size_t index = pathName.find_last_of(L"\\") + 1;
-            pathName.replace(index, pathName.length(), L"ui_bar\\bar.html");
+        return S_OK;
+    }).Get()));
+}
 
-            RETURN_IF_FAILED(m_uiWebview->Navigate(pathName.c_str()));
+void BrowserWindow::CreateBrowserOptionsWebView()
+{
+    THROW_IF_FAILED(m_uiEnv->CreateWebView(m_hWnd, Callback<IWebView2CreateWebViewCompletedHandler>(
+        [this](HRESULT result, IWebView2WebView* webview) -> HRESULT
+    {
+        if (!SUCCEEDED(result))
+        {
+            OutputDebugString(L"Options WebView creation failed\n");
+            return result;
+        }
+        // WebView created
+        m_optionsWebView = webview;
+        // Hide by default
+        RETURN_IF_FAILED(m_optionsWebView->put_IsVisible(FALSE));
+        RETURN_IF_FAILED(m_optionsWebView->add_WebMessageReceived(m_uiMessageBroker.Get(), &m_optionsUIMessageBrokerToken));
+
+        // Hide menu when focus is lost
+        RETURN_IF_FAILED(m_optionsWebView->add_LostFocus(Callback<IWebView2FocusChangedEventHandler>(
+            [this](IWebView2WebView* sender, IUnknown* args) -> HRESULT
+        {
+            web::json::value jsonObj = web::json::value::parse(L"{}");
+            jsonObj[L"message"] = web::json::value(MG_OPTIONS_LOST_FOCUS);
+            jsonObj[L"args"] = web::json::value::parse(L"{}");
+
+            utility::stringstream_t stream;
+            jsonObj.serialize(stream);
+
+            THROW_IF_FAILED(m_controlsWebView->PostWebMessageAsJson(stream.str().c_str()));
 
             return S_OK;
-        }).Get()));
+        }).Get(), &m_lostOptionsFocus));
+
+        ResizeUIWebViews();
+
+        std::wstring optionsPath = GetFullPathFor(L"ui_bar\\options.html");
+        RETURN_IF_FAILED(m_optionsWebView->Navigate(optionsPath.c_str()));
 
         return S_OK;
     }).Get()));
@@ -297,6 +335,13 @@ void BrowserWindow::SetUIMessageBroker()
         case MG_NAVIGATE:
         {
             std::wstring uri(args.at(L"uri").as_string());
+
+            if (uri.substr(0, 7).compare(L"edge://") == 0)
+            {
+                // No encoded search URI
+                THROW_IF_FAILED(m_tabs.at(m_activeTabId)->m_contentWebview->Navigate(uri.c_str()));
+            }
+
             if (!SUCCEEDED(m_tabs.at(m_activeTabId)->m_contentWebview->Navigate(uri.c_str())))
             {
                 THROW_IF_FAILED(m_tabs.at(m_activeTabId)->m_contentWebview->Navigate(args.at(L"encodedSearchURI").as_string().c_str()));
@@ -338,6 +383,22 @@ void BrowserWindow::SetUIMessageBroker()
         case MG_CLOSE_WINDOW:
         {
             PostMessage(m_hWnd, WM_CLOSE, 0, 0);
+        }
+        break;
+        case MG_SHOW_OPTIONS:
+        {
+            THROW_IF_FAILED(m_optionsWebView->put_IsVisible(TRUE));
+            THROW_IF_FAILED(m_optionsWebView->MoveFocus(WEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC));
+        }
+        break;
+        case MG_HIDE_OPTIONS:
+        {
+            THROW_IF_FAILED(m_optionsWebView->put_IsVisible(FALSE));
+        }
+        break;
+        case MG_OPTION_SELECTED:
+        {
+            THROW_IF_FAILED(m_tabs.at(m_activeTabId)->m_contentWebview->MoveFocus(WEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC));
         }
         break;
         default:
@@ -387,7 +448,7 @@ void BrowserWindow::HandleTabURIUpdate(size_t tabId, IWebView2WebView* webview)
     utility::stringstream_t stream;
     jsonObj.serialize(stream);
 
-    THROW_IF_FAILED(m_uiWebview->PostWebMessageAsJson(stream.str().c_str()));
+    THROW_IF_FAILED(m_controlsWebView->PostWebMessageAsJson(stream.str().c_str()));
 }
 
 void BrowserWindow::HandleTabNavStarting(size_t tabId, IWebView2WebView* webview)
@@ -400,7 +461,7 @@ void BrowserWindow::HandleTabNavStarting(size_t tabId, IWebView2WebView* webview
     utility::stringstream_t stream;
     jsonObj.serialize(stream);
 
-    THROW_IF_FAILED(m_uiWebview->PostWebMessageAsJson(stream.str().c_str()));
+    THROW_IF_FAILED(m_controlsWebView->PostWebMessageAsJson(stream.str().c_str()));
 }
 
 void BrowserWindow::HandleTabNavCompleted(size_t tabId, IWebView2WebView* webview)
@@ -442,7 +503,7 @@ void BrowserWindow::HandleTabNavCompleted(size_t tabId, IWebView2WebView* webvie
         utility::stringstream_t stream;
         jsonObj.serialize(stream);
 
-        THROW_IF_FAILED(m_uiWebview->PostWebMessageAsJson(stream.str().c_str()));
+        THROW_IF_FAILED(m_controlsWebView->PostWebMessageAsJson(stream.str().c_str()));
         return S_OK;
     }).Get()));
 
@@ -454,7 +515,7 @@ void BrowserWindow::HandleTabNavCompleted(size_t tabId, IWebView2WebView* webvie
     utility::stringstream_t stream;
     jsonObj.serialize(stream);
 
-    THROW_IF_FAILED(m_uiWebview->PostWebMessageAsJson(stream.str().c_str()));
+    THROW_IF_FAILED(m_controlsWebView->PostWebMessageAsJson(stream.str().c_str()));
 }
 
 void BrowserWindow::HandleTabCreated(size_t tabId, bool shouldBeActive)
@@ -465,19 +526,33 @@ void BrowserWindow::HandleTabCreated(size_t tabId, bool shouldBeActive)
     }
 }
 
-void BrowserWindow::ResizeUIWebView(HWND hWnd)
+void BrowserWindow::ResizeUIWebViews()
 {
-    RECT bounds;
-    GetClientRect(hWnd, &bounds);
-    bounds.bottom = bounds.top + (c_uiBarHeight * GetDpiForWindow(hWnd) / DEFAULT_DPI);
-    THROW_IF_FAILED(m_uiWebview->put_Bounds(bounds));
+    if (m_controlsWebView != nullptr)
+    {
+        RECT bounds;
+        GetClientRect(m_hWnd, &bounds);
+        bounds.bottom = bounds.top + GetDPIAwareBound(c_uiBarHeight);
+        THROW_IF_FAILED(m_controlsWebView->put_Bounds(bounds));
+    }
+
+    if (m_optionsWebView != nullptr)
+    {
+        // TO DO: remove hacky offsets once put_Bounds is fixed
+        RECT bounds;
+        GetClientRect(m_hWnd, &bounds);
+        bounds.top = GetDPIAwareBound(c_uiBarHeight) / 2;
+        bounds.bottom = bounds.top + GetDPIAwareBound(c_optionsDropdownHeight);
+        bounds.left = (bounds.right - GetDPIAwareBound(c_optionsDropdownWidth)) / 2;
+        THROW_IF_FAILED(m_optionsWebView->put_Bounds(bounds));
+    }
 }
 
-void BrowserWindow::UpdateMinWindowSize(HWND hWnd)
+void BrowserWindow::UpdateMinWindowSize()
 {
     // TO DO: figure out why these limits are not being applied properly
-    m_minWindowWidth = MIN_WINDOW_WIDTH * GetDpiForWindow(hWnd) / DEFAULT_DPI;
-    m_minWindowHeight = MIN_WINDOW_HEIGHT * GetDpiForWindow(hWnd) / DEFAULT_DPI;
+    m_minWindowWidth = GetDPIAwareBound(MIN_WINDOW_WIDTH);
+    m_minWindowHeight = GetDPIAwareBound(MIN_WINDOW_HEIGHT);
 }
 
 void BrowserWindow::CheckFailure(HRESULT hr)
@@ -488,6 +563,11 @@ void BrowserWindow::CheckFailure(HRESULT hr)
         StringCchPrintf(message, ARRAYSIZE(message), L"Error: 0x%x", hr);
         MessageBoxW(nullptr, message, nullptr, MB_OK);
     }
+}
+
+int BrowserWindow::GetDPIAwareBound(int bound)
+{
+    return (bound * GetDpiForWindow(m_hWnd) / DEFAULT_DPI);
 }
 
 std::wstring BrowserWindow::GetAppDataDirectory()
@@ -507,4 +587,16 @@ std::wstring BrowserWindow::GetAppDataDirectory()
 
     dataDirectory.append(s_title);
     return dataDirectory;
+}
+
+std::wstring BrowserWindow::GetFullPathFor(LPCWSTR relativePath)
+{
+    WCHAR path[MAX_PATH];
+    GetModuleFileNameW(m_hInst, path, MAX_PATH);
+    std::wstring pathName(path);
+
+    std::size_t index = pathName.find_last_of(L"\\") + 1;
+    pathName.replace(index, pathName.length(), relativePath);
+
+    return pathName;
 }

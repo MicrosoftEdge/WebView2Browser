@@ -1,3 +1,7 @@
+html, body {
+    height: 70px;
+}
+
 #controls-bar {
     display: flex;
     justify-content: space-between;
@@ -6,7 +10,7 @@
     background-color: rgb(230, 230, 230);
 }
 
-.btn, .btn-disabled, .btn-cancel {
+.btn, .btn-disabled, .btn-cancel, .btn-active {
     display: inline-block;
     border: none;
     margin: 5px 0;
@@ -42,6 +46,10 @@
     background-image: url('img/cancel.png');
 }
 
+#btn-options {
+    background-image: url('img/options.png');
+}
+
 .controls-group {
     display: inline-block;
     height: 40px;
@@ -57,7 +65,7 @@
     padding-right: 10px;
 }
 
-.btn:hover, .btn-cancel:hover {
+.btn:hover, .btn-cancel:hover, .btn-active {
     background-color: rgb(200, 200, 200);
 }
 
