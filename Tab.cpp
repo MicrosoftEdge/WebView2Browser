@@ -54,6 +54,17 @@ void Tab::Init(IWebView2Environment* env, bool shouldBeActive)
             return S_OK;
         }).Get(), &m_navCompletedToken));
 
+        // Enable listening for security events to update secure icon
+        THROW_IF_FAILED(m_contentWebview->CallDevToolsProtocolMethod(L"Security.enable", L"{}", nullptr));
+
+        // Forward security status updates to browser
+        THROW_IF_FAILED(m_contentWebview->add_DevToolsProtocolEventReceived(L"Security.securityStateChanged", Callback<IWebView2DevToolsProtocolEventReceivedEventHandler>(
+            [this, browserWindow](IWebView2WebView* webview, IWebView2DevToolsProtocolEventReceivedEventArgs* args) -> HRESULT
+        {
+            browserWindow->HandleTabSecurityUpdate(m_tabId, webview, args);
+            return S_OK;
+        }).Get(), &m_securityUpdateToken));
+
         THROW_IF_FAILED(m_contentWebview->Navigate(L"https://www.bing.com"));
         browserWindow->HandleTabCreated(m_tabId, shouldBeActive);
 

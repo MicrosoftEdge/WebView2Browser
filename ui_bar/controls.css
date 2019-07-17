@@ -70,29 +70,89 @@ html, body {
 }
 
 #address-bar-container {
-    display: inline-block;
-    height: calc(inherit - 10px);
+    display: flex;
+    height: calc(100% - 10px);
     min-width: 400px;
     width: 70%;
     max-width: calc(100% - 250px);
+
+    background-color: white;
+    border: 1px solid gray;
+    border-radius: 5px;
 
     position: relative;
     align-self: center;
 }
 
+#address-bar-container:focus-within {
+    outline: none;
+    box-shadow: 0 0 3px dodgerblue;
+}
+
+#security-label {
+    display: inline-flex;
+    height: 100%;
+
+    vertical-align: top;
+}
+
+#security-label span {
+    font-family: Arial;
+    font-size: 0.9em;
+    color: gray;
+    vertical-align: middle;
+    flex: 1;
+    align-self: center;
+    text-align: left;
+    padding-left: 5px;
+    white-space: nowrap;
+}
+
 .icn {
     display: inline-block;
-    margin: 2px;
+    margin: 2px 0;
     border-radius: 5px;
-    position: absolute;
     top: 0;
     width: 26px;
     height: 26px;
-    background-color: rgb(200, 200, 200);
+}
+
+#icn-lock {
+    background-size: 100%;
+}
+
+#security-label.label-unknown .icn {
+    background-image: url('img/unknown.png');
+}
+
+#security-label.label-insecure .icn {
+    background-image: url('img/insecure.png');
+}
+
+#security-label.label-insecure span {
+    color: rgb(192, 0, 0);
+}
+
+#security-label.label-neutral .icn {
+    background-image: url('img/neutral.png');
+}
+
+#security-label.label-secure .icn {
+    background-image: url('img/secure.png');
+}
+
+#security-label.label-secure span, #security-label.label-neutral span {
+    display: none;
 }
 
 #icn-favicon {
-    left: 30px;
+    background-size: 100%;
+}
+
+#img-favicon {
+    width: 18px;
+    height: 18px;
+    padding: 4px;
 }
 
 #address-form {
@@ -100,12 +160,10 @@ html, body {
 }
 
 #address-field {
-    display: inline-block;
-    margin: 0;
-    border: 1px solid gray;
-    border-radius: 5px;
     padding: 0;
-    padding-left: 62px;
+    border: none;
+    border-radius: 5px;
+    margin: 0;
 
     height: 30px;
     width: 100%;
@@ -113,5 +171,4 @@ html, body {
 
 #address-field:focus {
     outline: none;
-    box-shadow: 0 0 3px dodgerblue;
 }

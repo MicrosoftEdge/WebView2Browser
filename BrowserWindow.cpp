@@ -489,8 +489,42 @@ void BrowserWindow::HandleTabNavCompleted(size_t tabId, IWebView2WebView* webvie
         L"})();"
     );
 
+    std::wstring getFaviconURI(
+        L"(() => {"
+        // Let the UI use a fallback favicon
+        L"    let faviconURI = '';"
+        L"    let links = document.getElementsByTagName('link');"
+        // Test each link for a favicon
+        L"    Array.from(links).map(element => {"
+        L"        let rel = element.rel;"
+        // Favicon is declared, try to get the href
+        L"        if (rel && (rel == 'shortcut icon' || rel == 'icon')) {"
+        L"            if (!element.href) {"
+        L"                return;"
+        L"            }"
+        // href to icon found, check it's full URI
+        L"            try {"
+        L"                let urlParser = new URL(element.href);"
+        L"                faviconURI = urlParser.href;"
+        L"            } catch(e) {"
+        // Try prepending origin
+        L"                let origin = window.location.origin;"
+        L"                let faviconLocation = `${origin}/${element.href}`;"
+        L"                try {"
+        L"                    urlParser = new URL(faviconLocation);"
+        L"                    faviconURI = urlParser.href;"
+        L"                } catch (e2) {"
+        L"                    return;"
+        L"                }"
+        L"            }"
+        L"        }"
+        L"    });"
+        L"    return faviconURI;"
+        L"})();"
+    );
+
     THROW_IF_FAILED(webview->ExecuteScript(getTitleScript.c_str(), Callback<IWebView2ExecuteScriptCompletedHandler>(
-        [this, webview, tabId](HRESULT error, PCWSTR result) -> HRESULT
+        [this, tabId](HRESULT error, PCWSTR result) -> HRESULT
     {
         RETURN_IF_FAILED(error);
 
@@ -507,10 +541,46 @@ void BrowserWindow::HandleTabNavCompleted(size_t tabId, IWebView2WebView* webvie
         return S_OK;
     }).Get()));
 
+    THROW_IF_FAILED(webview->ExecuteScript(getFaviconURI.c_str(), Callback<IWebView2ExecuteScriptCompletedHandler>(
+        [this, tabId](HRESULT error, PCWSTR result) -> HRESULT
+    {
+        RETURN_IF_FAILED(error);
+
+        web::json::value jsonObj = web::json::value::parse(L"{}");
+        jsonObj[L"message"] = web::json::value(MG_UPDATE_FAVICON);
+        jsonObj[L"args"] = web::json::value::parse(L"{}");
+        jsonObj[L"args"][L"uri"] = web::json::value::parse(result);
+        jsonObj[L"args"][L"tabId"] = web::json::value::number(tabId);
+
+        utility::stringstream_t stream;
+        jsonObj.serialize(stream);
+
+        THROW_IF_FAILED(m_controlsWebView->PostWebMessageAsJson(stream.str().c_str()));
+        return S_OK;
+    }).Get()));
+
     web::json::value jsonObj = web::json::value::parse(L"{}");
     jsonObj[L"message"] = web::json::value(MG_NAV_COMPLETED);
     jsonObj[L"args"] = web::json::value::parse(L"{}");
     jsonObj[L"args"][L"tabId"] = web::json::value::number(tabId);
+
+    utility::stringstream_t stream;
+    jsonObj.serialize(stream);
+
+    THROW_IF_FAILED(m_controlsWebView->PostWebMessageAsJson(stream.str().c_str()));
+}
+
+void BrowserWindow::HandleTabSecurityUpdate(size_t tabId, IWebView2WebView* webview, IWebView2DevToolsProtocolEventReceivedEventArgs* args)
+{
+    wil::unique_cotaskmem_string jsonArgs;
+    args->get_ParameterObjectAsJson(&jsonArgs);
+    web::json::value securityEvent = web::json::value::parse(jsonArgs.get());
+
+    web::json::value jsonObj = web::json::value::parse(L"{}");
+    jsonObj[L"message"] = web::json::value(MG_SECURITY_UPDATE);
+    jsonObj[L"args"] = web::json::value::parse(L"{}");
+    jsonObj[L"args"][L"tabId"] = web::json::value::number(tabId);
+    jsonObj[L"args"][L"state"] = securityEvent.at(L"securityState");
 
     utility::stringstream_t stream;
     jsonObj.serialize(stream);

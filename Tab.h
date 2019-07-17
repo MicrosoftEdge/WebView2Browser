@@ -19,6 +19,7 @@ protected:
     EventRegistrationToken m_uriUpdateForwarderToken = {};
     EventRegistrationToken m_navStartingToken = {};
     EventRegistrationToken m_navCompletedToken = {};
+    EventRegistrationToken m_securityUpdateToken = {};
 
     void Init(IWebView2Environment* env, bool shouldBeActive);
 };

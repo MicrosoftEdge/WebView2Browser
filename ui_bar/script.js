@@ -23,7 +23,7 @@ const messageHandler = event => {
 
                 // If the tab is active, update the controls UI
                 if (args.tabId == activeTabId) {
-                    updateNavigationUIForTab(args.tabId, commands.MG_UPDATE_URI);
+                    updateNavigationUI(message);
                 }
             }
             break;
@@ -32,9 +32,9 @@ const messageHandler = event => {
                 // Update the tab state
                 tabs.get(args.tabId).isLoading = true;
 
-                // If the tab is active, udpate the controls UI
+                // If the tab is active, update the controls UI
                 if (args.tabId == activeTabId) {
-                    updateNavigationUIForTab(args.tabId, commands.MG_NAV_STARTING);
+                    updateNavigationUI(message);
                 }
             }
             break;
@@ -45,7 +45,7 @@ const messageHandler = event => {
 
                 // If the tab is active, update the controls UI
                 if (args.tabId == activeTabId) {
-                    updateNavigationUIForTab(args.tabId, commands.MG_NAV_COMPLETED);
+                    updateNavigationUI(message);
                 }
             }
             break;
@@ -54,25 +54,17 @@ const messageHandler = event => {
                 const tab = tabs.get(args.tabId);
                 const tabElement = document.getElementById(`tab-${args.tabId}`);
 
-                // Update tab label
-                if (tabElement) {
-                    // use given title or fall back to a generic tab title
-                    tab.title = args.title || 'Tab';
-
-                    const tabLabel = tabElement.firstChild;
-                    if (!tabLabel) {
-                        console.log(`tab-${args.tabId} doesn't have a label`);
-                        break;
-                    }
-
-                    const tabLabelSpan = tabLabel.firstChild;
-                    if (!tabLabel) {
-                        console.log(`Label for tab-${args.tabId} doesn't have a span`);
-                        break;
-                    }
-
-                    tabLabelSpan.innerText = tab.title;
+                if (!tabElement) {
+                    refreshTabs();
+                    return;
                 }
+
+                // Update tab label
+                // Use given title or fall back to a generic tab title
+                tab.title = args.title || 'Tab';
+                const tabLabel = tabElement.firstChild;
+                const tabLabelSpan = tabLabel.firstChild;
+                tabLabelSpan.innerText = tab.title;
             }
             break;
         case commands.MG_OPTIONS_LOST_FOCUS:
@@ -83,6 +75,26 @@ const messageHandler = event => {
                 }
             }
             break;
+        case commands.MG_SECURITY_UPDATE:
+            if (isValidTabId(args.tabId)) {
+                const tab = tabs.get(args.tabId);
+                tab.securityState = args.state;
+
+                if (args.tabId == activeTabId) {
+                    updateNavigationUI(message);
+                }
+            }
+            break;
+        case commands.MG_UPDATE_FAVICON:
+            if (isValidTabId(args.tabId)) {
+                updateFaviconURI(args.tabId, args.uri);
+            }
+            break;
+        case commands.MG_CLOSE_WINDOW:
+            closeWindow();
+            break;
+        default:
+            console.log(`Received unexpected message: ${JSON.stringify(event.data)}`);
     }
 };
 
@@ -210,7 +222,7 @@ function switchToTab(id, updateOnHost) {
         window.chrome.webview.postMessage(message);
     }
 
-    updateNavigationUIForTab(id, commands.MG_SWITCH_TAB);
+    updateNavigationUI(commands.MG_SWITCH_TAB);
 }
 
 function closeTab(id) {
@@ -218,6 +230,7 @@ function closeTab(id) {
     if (id == activeTabId) {
         if (tabs.size == 1) {
             // last tab is closing, shut window down
+            tabs.delete(id);
             closeWindow();
             return;
         }
@@ -258,39 +271,216 @@ function closeWindow() {
     window.chrome.webview.postMessage(message);
 }
 
-function updateNavigationUIForTab(id, reason) {
-    const tab = tabs.get(parseInt(id));
-
-    if (!tab) {
-        return console.log(`Tab ${id} does not exist in map`);
+// Show active tab's URI in the address bar
+function updateURI() {
+    if (activeTabId == INVALID_TAB_ID) {
+        return;
     }
 
-    // update reload
-    var btnReload = document.getElementById('btn-reload');
-    btnReload.className = tab.isLoading ? 'btn-cancel' : 'btn';
+    let activeTab = tabs.get(activeTabId);
 
-    // udpate uri
-    if (reason == commands.MG_UPDATE_URI || reason == commands.MG_SWITCH_TAB) {
-        let uriToShow = tab.uri;
-        if (uriToShow.startsWith('edge://')) {
-            uriToShow = 'browser://' + uriToShow.substring(7);
-        }
-        document.getElementById('address-field').value = uriToShow;
+    let uriToShow = activeTab.uri;
+    if (uriToShow.startsWith('edge://')) {
+        uriToShow = 'browser://' + uriToShow.substring(7);
     }
 
-    // update go back/forward
-    const btnForward = document.getElementById('btn-forward');
-    const btnBack = document.getElementById('btn-back');
+    document.getElementById('address-field').value = uriToShow;
+}
 
-    if (tab.canGoForward)
+// Show active tab's favicon in the address bar
+function updateFavicon() {
+    if (activeTabId == INVALID_TAB_ID) {
+        return;
+    }
+
+    let activeTab = tabs.get(activeTabId);
+
+    let faviconElement = document.getElementById('img-favicon');
+    if (!faviconElement) {
+        refreshControls();
+        return;
+    }
+
+    faviconElement.src = activeTab.favicon;
+
+}
+
+// Update back and forward buttons for the active tab
+function updateBackForwardButtons() {
+    if (activeTabId == INVALID_TAB_ID) {
+        return;
+    }
+
+    let activeTab = tabs.get(activeTabId);
+    let btnForward = document.getElementById('btn-forward');
+    let btnBack = document.getElementById('btn-back');
+
+    if (!btnBack || !btnForward) {
+        refreshControls();
+        return;
+    }
+
+    if (activeTab.canGoForward)
         btnForward.className = 'btn';
     else
         btnForward.className = 'btn-disabled';
 
-    if (tab.canGoBack)
+    if (activeTab.canGoBack)
         btnBack.className = 'btn';
     else
         btnBack.className = 'btn-disabled';
+}
+
+// Update reload button for the active tab
+function updateReloadButton() {
+    if (activeTabId == INVALID_TAB_ID) {
+        return;
+    }
+
+    let activeTab = tabs.get(activeTabId);
+
+    let btnReload = document.getElementById('btn-reload');
+    if (!btnReload) {
+        refreshControls();
+        return;
+    }
+
+    btnReload.className = activeTab.isLoading ? 'btn-cancel' : 'btn';
+}
+
+// Update lock icon for the active tab
+function updateLockIcon() {
+    if (activeTabId == INVALID_TAB_ID) {
+        return;
+    }
+
+    let activeTab = tabs.get(activeTabId);
+
+    let labelElement = document.getElementById('security-label');
+    if (!labelElement) {
+        refreshControls();
+        return;
+    }
+
+    switch (activeTab.securityState) {
+        case 'insecure':
+            labelElement.className = 'label-insecure';
+            break;
+        case 'neutral':
+            labelElement.className = 'label-neutral';
+            break;
+        case 'secure':
+            labelElement.className = 'label-secure';
+            break;
+        default:
+            labelElement.className = 'label-unknown';
+            break;
+    }
+}
+
+function updateNavigationUI(reason) {
+    switch (reason) {
+        case commands.MG_UPDATE_URI:
+            updateBackForwardButtons();
+            updateURI();
+            break;
+        case commands.MG_NAV_COMPLETED:
+        case commands.MG_NAV_STARTING:
+            updateReloadButton();
+            break;
+        case commands.MG_SECURITY_UPDATE:
+            updateLockIcon();
+            break;
+        case commands.MG_UPDATE_FAVICON:
+            updateFavicon();
+            break;
+        // If a reason is not provided (for requests not originating from a
+        // message), default to switch tab behavior.
+        default:
+        case commands.MG_SWITCH_TAB:
+            updateURI();
+            updateLockIcon();
+            updateFavicon();
+            updateReloadButton();
+            updateBackForwardButtons();
+            break;
+    }
+}
+
+function updateFaviconURI(tabId, src) {
+    let tab = tabs.get(tabId);
+    if (tab.favicon != src) {
+        let img = new Image();
+
+        // Update favicon element on successful load
+        img.onload = () => {
+            console.log('Favicon loaded');
+            tab.favicon = src;
+
+            if (tabId == activeTabId) {
+                updateNavigationUI(commands.MG_UPDATE_FAVICON);
+            }
+        };
+
+        if (src) {
+            // Try load from root on failed load
+            img.onerror = () => {
+                console.log('Cannot load favicon from link, trying with root');
+                updateFaviconURI(tab, '');
+            };
+        } else {
+            // No link for favicon, try loading from root
+            try {
+                let tabURI = new URL(tab.uri);
+                src = `${tabURI.origin}/favicon.ico`;
+            } catch(e) {
+                console.log(`Could not parse tab ${tabId} URI`);
+            }
+
+            img.onerror = () => {
+                console.log('No favicon in site root. Using default favicon.');
+                tab.favicon = 'img/favicon.png';
+                updateNavigationUI(commands.MG_UPDATE_FAVICON);
+            };
+        }
+
+        img.src = src;
+    }
+}
+
+function loadTabUI(tabId) {
+    if (isValidTabId(tabId)) {
+        let tab = tabs.get(tabId);
+
+        let tabElement = document.createElement('div');
+        tabElement.className = tabId == activeTabId ? 'tab-active' : 'tab';
+        tabElement.id = `tab-${tabId}`;
+
+        let tabLabel = document.createElement('div');
+        tabLabel.className = 'tab-label';
+
+        let labelText = document.createElement('span');
+        labelText.innerHTML = tab.title;
+        tabLabel.appendChild(labelText);
+
+        let closeButton = document.createElement('div');
+        closeButton.className = 'btn-tab-close';
+        closeButton.addEventListener('click', function(e) {
+            closeTab(tabId);
+        });
+
+        tabElement.appendChild(tabLabel);
+        tabElement.appendChild(closeButton);
+
+        var createTabButton = document.getElementById('btn-new-tab');
+        document.getElementById('tabs-strip').insertBefore(tabElement, createTabButton);
+
+        tabElement.addEventListener('click', function(e) {
+            if (e.srcElement.className != 'btn-tab-close') {
+                switchToTab(tabId, true);
+            }
+        });
+    }
 }
 
 function createNewTab(shouldBeActive) {
@@ -307,42 +497,16 @@ function createNewTab(shouldBeActive) {
     window.chrome.webview.postMessage(message);
 
     tabs.set(parseInt(tabId), {
-        title: '',
+        title: 'New Tab',
         uri: '',
-        favicon: '',
+        favicon: 'img/favicon.png',
         isLoading: false,
         canGoBack: false,
-        canGoForward: false
+        canGoForward: false,
+        securityState: 'unknown'
     });
 
-    var tab = document.createElement('div');
-    tab.className = shouldBeActive ? 'tab-active' : 'tab';
-    tab.id = `tab-${tabId}`;
-
-    var tabLabel = document.createElement('div');
-    tabLabel.className = 'tab-label';
-
-    var labelText = document.createElement('span');
-    labelText.innerHTML = 'New Tab';
-    tabLabel.appendChild(labelText);
-
-    var closeButton = document.createElement('div');
-    closeButton.className = 'btn-tab-close';
-    closeButton.addEventListener('click', function(e) {
-        closeTab(tabId);
-    });
-
-    tab.appendChild(tabLabel);
-    tab.appendChild(closeButton);
-
-    var createTabButton = document.getElementById('btn-new-tab');
-    document.getElementById('tabs-strip').insertBefore(tab, createTabButton);
-
-    tab.addEventListener('click', function(e) {
-        if (e.srcElement.className != 'btn-tab-close') {
-            switchToTab(tabId, true);
-        }
-    });
+    loadTabUI(tabId);
 
     if (shouldBeActive) {
         switchToTab(tabId, false);
@@ -375,7 +539,129 @@ function toggleOptionsDropdown() {
     window.chrome.webview.postMessage(message);
 }
 
-function addUIListeners() {
+function refreshControls() {
+    let controlsElement = document.getElementById('controls-bar');
+    if (controlsElement) {
+        controlsElement.remove();
+    }
+
+    controlsElement = document.createElement('div');
+    controlsElement.id = 'controls-bar';
+
+    // Navigation controls
+    let navControls = document.createElement('div');
+    navControls.className = 'controls-group';
+    navControls.id = 'nav-controls-container';
+
+    let backButton = document.createElement('div');
+    backButton.className = 'btn-disabled';
+    backButton.id = 'btn-back';
+    navControls.append(backButton);
+
+    let forwardButton = document.createElement('div');
+    forwardButton.className = 'btn-disabled';
+    forwardButton.id = 'btn-forward';
+    navControls.append(forwardButton);
+
+    let reloadButton = document.createElement('div');
+    reloadButton.className = 'btn';
+    reloadButton.id = 'btn-reload';
+    navControls.append(reloadButton);
+
+    controlsElement.append(navControls);
+
+    // Address bar
+    let addressBar = document.createElement('div');
+    addressBar.id = 'address-bar-container';
+
+    let securityLabel = document.createElement('div');
+    securityLabel.className = 'label-unknown';
+    securityLabel.id = 'security-label';
+
+    let labelSpan = document.createElement('span');
+    labelSpan.innerHTML = 'Not secure';
+    securityLabel.append(labelSpan);
+
+    let lockIcon = document.createElement('div');
+    lockIcon.className = 'icn';
+    lockIcon.id = 'icn-lock';
+    securityLabel.append(lockIcon);
+    addressBar.append(securityLabel);
+
+    let faviconElement = document.createElement('div');
+    faviconElement.className = 'icn';
+    faviconElement.id = 'icn-favicon';
+
+    let faviconImage = document.createElement('img');
+    faviconImage.id = 'img-favicon';
+    faviconImage.src = 'img/favicon.png';
+    faviconElement.append(faviconImage);
+    addressBar.append(faviconElement);
+
+    let addressInput = document.createElement('input');
+    addressInput.id = 'address-field';
+    addressInput.type = 'text';
+    addressBar.append(addressInput);
+    controlsElement.append(addressBar);
+
+    // Manage controls
+    let manageControls = document.createElement('div');
+    manageControls.className = 'controls-group';
+    manageControls.id = 'manage-controls-container';
+
+    let favoriteButton = document.createElement('div');
+    favoriteButton.className = 'btn';
+    favoriteButton.id = 'btn-fav';
+    manageControls.append(favoriteButton);
+
+    let optionsButton = document.createElement('div');
+    optionsButton.className = 'btn';
+    optionsButton.id = 'btn-options';
+    manageControls.append(optionsButton);
+    controlsElement.append(manageControls);
+
+    // Insert controls bar into document
+    let tabsElement = document.getElementById('tabs-strip');
+    if (tabsElement) {
+        tabsElement.parentElement.insertBefore(controlsElement, tabsElement);
+    } else {
+        let bodyElement = document.getElementsByTagName('body')[0];
+        bodyElement.append(controlsElement);
+    }
+
+    addControlsListeners();
+    updateNavigationUI();
+}
+
+function refreshTabs() {
+    let tabsStrip = document.getElementById('tabs-strip');
+    if (tabsStrip) {
+        tabsStrip.remove();
+    }
+
+    tabsStrip = document.createElement('div');
+    tabsStrip.id = 'tabs-strip';
+
+    let newTabButton = document.createElement('div');
+    newTabButton.id = 'btn-new-tab';
+
+    let buttonSpan = document.createElement('span');
+    buttonSpan.innerText = '+';
+    buttonSpan.id = 'plus-label';
+    newTabButton.append(buttonSpan);
+    tabsStrip.append(newTabButton);
+
+    let bodyElement = document.getElementsByTagName('body')[0];
+    bodyElement.append(tabsStrip);
+
+    addTabsListeners();
+
+    Array.from(tabs).map((tabEntry) => {
+        loadTabUI(tabEntry[0]);
+    });
+}
+
+function addControlsListeners() {
     document.querySelector('#address-field').addEventListener('keypress', function (e) {
         var key = e.which || e.keyCode;
         if (key === 13) { // 13 is enter
@@ -425,6 +711,9 @@ function addUIListeners() {
         toggleOptionsDropdown();
     });
 
+}
+
+function addTabsListeners() {
     document.querySelector('#btn-new-tab').addEventListener('click', function(e) {
         createNewTab(true);
     });
@@ -432,7 +721,8 @@ function addUIListeners() {
 
 function init() {
     window.chrome.webview.addEventListener('message', messageHandler);
-    addUIListeners();
+    refreshControls();
+    refreshTabs();
 
     createNewTab(true);
 }

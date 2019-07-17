@@ -23,6 +23,7 @@ public:
     void HandleTabURIUpdate(size_t tabId, IWebView2WebView* webview);
     void HandleTabNavStarting(size_t tabId, IWebView2WebView* webview);
     void HandleTabNavCompleted(size_t tabId, IWebView2WebView* webview);
+    void HandleTabSecurityUpdate(size_t tabId, IWebView2WebView* webview, IWebView2DevToolsProtocolEventReceivedEventArgs* args);
     void HandleTabCreated(size_t tabId, bool shouldBeActive);
     void CheckFailure(HRESULT hr);
 protected:
