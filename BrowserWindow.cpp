@@ -259,7 +259,7 @@ void BrowserWindow::CreateBrowserControlsWebView()
         RETURN_IF_FAILED(m_controlsWebView->add_WebMessageReceived(m_uiMessageBroker.Get(), &m_controlsUIMessageBrokerToken));
         ResizeUIWebViews();
 
-        std::wstring controlsPath = GetFullPathFor(L"ui_bar\\bar.html");
+        std::wstring controlsPath = GetFullPathFor(L"wvbrowser_ui\\controls_ui\\default.html");
         RETURN_IF_FAILED(m_controlsWebView->Navigate(controlsPath.c_str()));
 
         return S_OK;
@@ -300,7 +300,7 @@ void BrowserWindow::CreateBrowserOptionsWebView()
 
         ResizeUIWebViews();
 
-        std::wstring optionsPath = GetFullPathFor(L"ui_bar\\options.html");
+        std::wstring optionsPath = GetFullPathFor(L"wvbrowser_ui\\controls_ui\\options.html");
         RETURN_IF_FAILED(m_optionsWebView->Navigate(optionsPath.c_str()));
 
         return S_OK;
