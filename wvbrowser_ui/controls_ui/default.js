@@ -517,8 +517,13 @@ function refreshControls() {
 
     let addressInput = document.createElement('input');
     addressInput.id = 'address-field';
+    addressInput.placeholder = 'Search or enter web address';
     addressInput.type = 'text';
     addressBar.append(addressInput);
+
+    let clearButton = document.createElement('button');
+    clearButton.id = 'btn-clear';
+    addressBar.append(clearButton);
 
     let favoriteButton = document.createElement('div');
     favoriteButton.className = 'icn';
@@ -594,7 +599,10 @@ function toggleFavorite() {
 }
 
 function addControlsListeners() {
-    document.querySelector('#address-field').addEventListener('keypress', function (e) {
+    let inputField = document.querySelector('#address-field');
+    let clearButton = document.querySelector('#btn-clear');
+
+    inputField.addEventListener('keypress', function(e) {
         var key = e.which || e.keyCode;
         if (key === 13) { // 13 is enter
             e.preventDefault();
@@ -602,7 +610,24 @@ function addControlsListeners() {
         }
     });
 
-    document.querySelector('#btn-forward').addEventListener('click', function (e) {
+    inputField.addEventListener('focus', function(e) {
+        e.target.select();
+    });
+
+    inputField.addEventListener('blur', function(e) {
+        inputField.setSelectionRange(0, 0);
+        if (!inputField.value) {
+            updateURI();
+        }
+    });
+
+    clearButton.addEventListener('click', function(e) {
+        inputField.value = '';
+        inputField.focus();
+        e.preventDefault();
+    });
+
+    document.querySelector('#btn-forward').addEventListener('click', function(e) {
         if (document.getElementById('btn-forward').className === 'btn') {
             var message = {
                 message: commands.MG_GO_FORWARD,
@@ -612,7 +637,7 @@ function addControlsListeners() {
         }
     });
 
-    document.querySelector('#btn-back').addEventListener('click', function (e) {
+    document.querySelector('#btn-back').addEventListener('click', function(e) {
         if (document.getElementById('btn-back').className === 'btn') {
             var message = {
                 message: commands.MG_GO_BACK,

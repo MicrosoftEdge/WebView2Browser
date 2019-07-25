@@ -17,6 +17,10 @@
     box-shadow: 0 0 3px dodgerblue;
 }
 
+#address-bar-container:focus-within #btn-clear {
+    display: block;
+}
+
 #security-label {
     display: inline-flex;
     height: 100%;
@@ -95,7 +99,7 @@
     border-radius: 5px;
     margin: 0;
 
-    height: 30px;
+    line-height: 30px;
     width: 100%;
 }
 
@@ -109,10 +113,23 @@
     background-image: url('img/favorite.png');
 }
 
-#btn-fav:hover {
+#btn-fav:hover, #btn-clear:hover {
     background-color: rgb(230, 230, 230);
 }
 
 #btn-fav.favorited {
     background-image: url('img/favorited.png');
+}
+
+#btn-clear {
+    display: none;
+    width: 16px;
+    height: 16px;
+    border: none;
+    align-self: center;
+    background-color: transparent;
+    background-image: url(img/cancel.png);
+    background-size: 100%;
+    border: none;
+    border-radius: 8px;
 }
