@@ -91,7 +91,7 @@ const messageHandler = event => {
                 tab.title = args.title || 'Tab';
                 const tabLabel = tabElement.firstChild;
                 const tabLabelSpan = tabLabel.firstChild;
-                tabLabelSpan.innerText = tab.title;
+                tabLabelSpan.textContent = tab.title;
 
                 // Update title in history item
                 // Browser pages will keep an invalid history ID
@@ -407,7 +407,7 @@ function loadTabUI(tabId) {
         tabLabel.className = 'tab-label';
 
         let labelText = document.createElement('span');
-        labelText.innerHTML = tab.title;
+        labelText.textContent = tab.title;
         tabLabel.appendChild(labelText);
 
         let closeButton = document.createElement('div');
@@ -496,7 +496,7 @@ function refreshControls() {
     securityLabel.id = 'security-label';
 
     let labelSpan = document.createElement('span');
-    labelSpan.innerHTML = 'Not secure';
+    labelSpan.textContent = 'Not secure';
     securityLabel.append(labelSpan);
 
     let lockIcon = document.createElement('div');
@@ -568,7 +568,7 @@ function refreshTabs() {
     newTabButton.id = 'btn-new-tab';
 
     let buttonSpan = document.createElement('span');
-    buttonSpan.innerText = '+';
+    buttonSpan.textContent = '+';
     buttonSpan.id = 'plus-label';
     newTabButton.append(buttonSpan);
     tabsStrip.append(newTabButton);

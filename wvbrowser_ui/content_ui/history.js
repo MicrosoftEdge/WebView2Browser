@@ -98,7 +98,7 @@ function createItemElement(item, id, date) {
     let linkElement = document.createElement('a');
     linkElement.href = item.uri;
     linkElement.title = item.title;
-    linkElement.innerText = item.title;
+    linkElement.textContent = item.title;
     titleLabel.append(linkElement);
     itemElement.append(titleLabel);
 
@@ -107,7 +107,7 @@ function createItemElement(item, id, date) {
     uriLabel.className = 'label-uri';
     let textElement = document.createElement('p');
     textElement.title = item.uri;
-    textElement.innerText = item.uri;
+    textElement.textContent = item.uri;
     uriLabel.append(textElement);
     itemElement.append(uriLabel);
 
@@ -115,7 +115,7 @@ function createItemElement(item, id, date) {
     let timeLabel = document.createElement('div');
     timeLabel.className = 'label-time';
     let timeText = document.createElement('p');
-    timeText.innerText = timeStringFormat.format(date);
+    timeText.textContent = timeStringFormat.format(date);
     timeLabel.append(timeText);
     itemElement.append(timeLabel);
 
@@ -147,7 +147,7 @@ function createDateContainer(id, date) {
 
     let dateLabel = document.createElement('h3');
     dateLabel.className = 'header-date';
-    dateLabel.innerText = dateStringFormat.format(date);
+    dateLabel.textContent = dateStringFormat.format(date);
     dateContainer.append(dateLabel);
 
     return dateContainer;

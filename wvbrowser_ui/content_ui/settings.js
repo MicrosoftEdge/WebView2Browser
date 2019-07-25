@@ -95,7 +95,7 @@ function updateLabelForEntry(elementId, label) {
         return;
     }
 
-    labelSpan.innerText = label;
+    labelSpan.textContent = label;
 }
 
 function init() {

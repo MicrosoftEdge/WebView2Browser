@@ -37,7 +37,7 @@ function loadFavorites(payload) {
 
     if (payload.length > 0) {
         let container = document.getElementById('entries-container');
-        container.innerHTML = '';
+        container.textContent = '';
     }
 
     payload.map(favorite => {
@@ -55,7 +55,7 @@ function loadFavorites(payload) {
         let labelElement = document.createElement('div');
         labelElement.className = 'label-title';
         let linkElement = document.createElement('a');
-        linkElement.innerHTML = favorite.title;
+        linkElement.textContent = favorite.title;
         linkElement.href = favorite.uri;
         linkElement.title = favorite.title;
         labelElement.appendChild(linkElement);
@@ -63,7 +63,7 @@ function loadFavorites(payload) {
         let uriElement = document.createElement('div');
         uriElement.className = 'label-uri';
         let textElement = document.createElement('p');
-        textElement.innerHTML = favorite.uriToShow || favorite.uri;
+        textElement.textContent = favorite.uriToShow || favorite.uri;
         textElement.title = favorite.uriToShow || favorite.uri;
         uriElement.appendChild(textElement);
 
