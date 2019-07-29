@@ -27,7 +27,9 @@ function createNewTab(shouldBeActive) {
     tabs.set(parseInt(tabId), {
         title: 'New Tab',
         uri: '',
+        uriToShow: '',
         favicon: 'img/favicon.png',
+        isFavorite: false,
         isLoading: false,
         canGoBack: false,
         canGoForward: false,
@@ -169,4 +171,20 @@ function updateFaviconURI(tabId, src) {
 
         img.src = src;
     }
+}
+
+function favoriteFromTab(tabId) {
+    if (!isValidTabId(tabId)) {
+        console.log('Invalid tab ID');
+        return;
+    }
+
+    let tab = tabs.get(tabId);
+    let favicon = tab.favicon == 'img/favicon.png' ? '../controls_ui/' + tab.favicon : tab.favicon;
+    return {
+        uri: tab.uri,
+        uriToShow: tab.uriToShow,
+        title: tab.title,
+        favicon: favicon
+    };
 }

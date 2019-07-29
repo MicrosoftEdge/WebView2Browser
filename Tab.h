@@ -20,6 +20,9 @@ protected:
     EventRegistrationToken m_navStartingToken = {};
     EventRegistrationToken m_navCompletedToken = {};
     EventRegistrationToken m_securityUpdateToken = {};
+    EventRegistrationToken m_messageBrokerToken = {};  // Message broker for browser pages loaded in a tab
+    Microsoft::WRL::ComPtr<IWebView2WebMessageReceivedEventHandler> m_messageBroker;
 
     void Init(IWebView2Environment* env, bool shouldBeActive);
+    void SetMessageBroker();
 };

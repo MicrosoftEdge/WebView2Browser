@@ -13,6 +13,7 @@ std::unique_ptr<Tab> Tab::CreateNewTab(HWND hWnd, IWebView2Environment* env, siz
 
     tab->m_parentHWnd = hWnd;
     tab->m_tabId = id;
+    tab->SetMessageBroker();
     tab->Init(env, shouldBeActive);
 
     return tab;
@@ -29,6 +30,7 @@ void Tab::Init(IWebView2Environment* env, bool shouldBeActive)
         }
         m_contentWebview = webview;
         BrowserWindow* browserWindow = reinterpret_cast<BrowserWindow*>(GetWindowLongPtr(m_parentHWnd, GWLP_USERDATA));
+        THROW_IF_FAILED(m_contentWebview->add_WebMessageReceived(m_messageBroker.Get(), &m_messageBrokerToken));
 
         // Register event handler for doc state change
         THROW_IF_FAILED(m_contentWebview->add_DocumentStateChanged(Callback<IWebView2DocumentStateChangedEventHandler>(
@@ -72,13 +74,27 @@ void Tab::Init(IWebView2Environment* env, bool shouldBeActive)
     }).Get()));
 }
 
+void Tab::SetMessageBroker()
+{
+    m_messageBroker = Callback<IWebView2WebMessageReceivedEventHandler>(
+        [this](IWebView2WebView* webview, IWebView2WebMessageReceivedEventArgs* eventArgs) -> HRESULT
+    {
+        BrowserWindow* browserWindow = reinterpret_cast<BrowserWindow*>(GetWindowLongPtr(m_parentHWnd, GWLP_USERDATA));
+        browserWindow->HandleTabMessageReceived(m_tabId, webview, eventArgs);
+
+        return S_OK;
+    });
+}
+
 void Tab::ResizeWebView()
 {
     RECT bounds;
     GetClientRect(m_parentHWnd, &bounds);
 
     // TO DO: remove hacky offset once put_Bounds is fixed
-    bounds.top += (BrowserWindow::c_uiBarHeight * GetDpiForWindow(m_parentHWnd) / DEFAULT_DPI) / 2;
+    BrowserWindow* browserWindow = reinterpret_cast<BrowserWindow*>(GetWindowLongPtr(m_parentHWnd, GWLP_USERDATA));
+    bounds.top += browserWindow->GetDPIAwareBound(BrowserWindow::c_uiBarHeight) / 2;
     bounds.bottom -= bounds.top;
+
     THROW_IF_FAILED(m_contentWebview->put_Bounds(bounds));
 }

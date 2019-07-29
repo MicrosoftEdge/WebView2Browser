@@ -20,19 +20,22 @@ public:
 
     static BOOL LaunchWindow(_In_ HINSTANCE hInstance, _In_ int nCmdShow);
     static std::wstring GetAppDataDirectory();
+    std::wstring GetFullPathFor(LPCWSTR relativePath);
     void HandleTabURIUpdate(size_t tabId, IWebView2WebView* webview);
     void HandleTabNavStarting(size_t tabId, IWebView2WebView* webview);
     void HandleTabNavCompleted(size_t tabId, IWebView2WebView* webview);
     void HandleTabSecurityUpdate(size_t tabId, IWebView2WebView* webview, IWebView2DevToolsProtocolEventReceivedEventArgs* args);
     void HandleTabCreated(size_t tabId, bool shouldBeActive);
+    void HandleTabMessageReceived(size_t tabId, IWebView2WebView* webview, IWebView2WebMessageReceivedEventArgs* eventArgs);
+    int GetDPIAwareBound(int bound);
     void CheckFailure(HRESULT hr);
 protected:
-    HINSTANCE m_hInst = nullptr;                     // current app instance
+    HINSTANCE m_hInst = nullptr;  // current app instance
     HWND m_hWnd = nullptr;
     static size_t s_windowInstanceCount;
 
-    static WCHAR s_windowClass[MAX_LOADSTRING];    // the window class name
-    static WCHAR s_title[MAX_LOADSTRING];          // The title bar text
+    static WCHAR s_windowClass[MAX_LOADSTRING];  // the window class name
+    static WCHAR s_title[MAX_LOADSTRING];  // The title bar text
 
     int m_minWindowWidth = 0;
     int m_minWindowHeight = 0;
@@ -49,15 +52,19 @@ protected:
     EventRegistrationToken m_lostOptionsFocus = {};  // token for the lost focus handler in options WebView
     Microsoft::WRL::ComPtr<IWebView2WebMessageReceivedEventHandler> m_uiMessageBroker;
 
-    std::wstring GetFullPathFor(LPCWSTR relativePath);
     BOOL InitInstance(HINSTANCE hInstance, int nCmdShow);
-    void InitUIWebViews();
+    HRESULT InitUIWebViews();
     void CreateBrowserControlsWebView();
     void CreateBrowserOptionsWebView();
+    HRESULT ClearContentCache();
+    HRESULT ClearControlsCache();
+    HRESULT ClearContentCookies();
+    HRESULT ClearControlsCookies();
 
     void SetUIMessageBroker();
     void ResizeUIWebViews();
     void UpdateMinWindowSize();
+    void PostJsonToWebView(web::json::value jsonObj, IWebView2WebView* webview);
     void SwitchToTab(size_t tabId);
-    int GetDPIAwareBound(int bound);
+    std::wstring GetFilePathAsURI(std::wstring fullPath);
 };

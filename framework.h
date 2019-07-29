@@ -5,7 +5,7 @@
 #pragma once
 
 #include "targetver.h"
-#define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
+#define WIN32_LEAN_AND_MEAN  // Exclude rarely-used stuff from Windows headers
 // Windows Header Files
 #include <atlstr.h>
 #include <strsafe.h>
@@ -50,3 +50,8 @@
 #define MG_OPTION_SELECTED 18
 #define MG_SECURITY_UPDATE 19
 #define MG_UPDATE_FAVICON 20
+#define MG_GET_SETTINGS 21
+#define MG_GET_FAVORITES 22
+#define MG_REMOVE_FAVORITE 23
+#define MG_CLEAR_CACHE 24
+#define MG_CLEAR_COOKIES 25

@@ -2,6 +2,11 @@ const WORD_REGEX = /^[^//][^.]*$/;
 const VALID_URI_REGEX = /^[-:.&#+()[\]$'*;@~!,?%=\/\w]+$/; // Will check that only RFC3986 allowed characters are included
 const SCHEMED_URI_REGEX = /^\w+:.+$/;
 
+let settings = {
+    scriptsEnabled: true,
+    blockPopups: true
+};
+
 const messageHandler = event => {
     var message = event.data.message;
     var args = event.data.args;
@@ -13,6 +18,7 @@ const messageHandler = event => {
 
                 // Update the tab state
                 tab.uri = args.uri;
+                tab.uriToShow = args.uriToShow;
                 tab.canGoBack = args.canGoBack;
                 tab.canGoForward = args.canGoForward;
 
@@ -20,6 +26,11 @@ const messageHandler = event => {
                 if (args.tabId == activeTabId) {
                     updateNavigationUI(message);
                 }
+
+                isFavorite(tab.uri, (isFavorite) => {
+                    tab.isFavorite = isFavorite;
+                    updateFavoriteIcon();
+                });
             }
             break;
         case commands.MG_NAV_STARTING:
@@ -87,6 +98,23 @@ const messageHandler = event => {
             break;
         case commands.MG_CLOSE_WINDOW:
             closeWindow();
+            break;
+        case commands.MG_GET_FAVORITES:
+            if (isValidTabId(args.tabId)) {
+                getFavoritesAsJson((payload) => {
+                    args.favorites = payload;
+                    window.chrome.webview.postMessage(event.data);
+                });
+            }
+            break;
+        case commands.MG_REMOVE_FAVORITE:
+            removeFavorite(args.uri);
+            break;
+        case commands.MG_GET_SETTINGS:
+            if (isValidTabId(args.tabId)) {
+                args.settings = settings;
+                window.chrome.webview.postMessage(event.data);
+            }
             break;
         default:
             console.log(`Received unexpected message: ${JSON.stringify(event.data)}`);
@@ -176,13 +204,7 @@ function updateURI() {
     }
 
     let activeTab = tabs.get(activeTabId);
-
-    let uriToShow = activeTab.uri;
-    if (uriToShow.startsWith('edge://')) {
-        uriToShow = 'browser://' + uriToShow.substring(7);
-    }
-
-    document.getElementById('address-field').value = uriToShow;
+    document.getElementById('address-field').value = activeTab.uriToShow || activeTab.uri;
 }
 
 // Show active tab's favicon in the address bar
@@ -276,11 +298,37 @@ function updateLockIcon() {
     }
 }
 
+// Update favorite status for the active tab
+function updateFavoriteIcon() {
+    if (activeTabId == INVALID_TAB_ID) {
+        return;
+    }
+
+    let activeTab = tabs.get(activeTabId);
+    isFavorite(activeTab.uri, (isFavorite) => {
+        let favoriteElement = document.getElementById('btn-fav');
+        if (!favoriteElement) {
+            refreshControls();
+            return;
+        }
+
+        if (isFavorite) {
+            favoriteElement.classList.add('favorited');
+            activeTab.isFavorite = true;
+        } else {
+            favoriteElement.classList.remove('favorited');
+            activeTab.isFavorite = false;
+        }
+    });
+
+}
+
 function updateNavigationUI(reason) {
     switch (reason) {
         case commands.MG_UPDATE_URI:
-            updateBackForwardButtons();
             updateURI();
+            updateFavoriteIcon();
+            updateBackForwardButtons();
             break;
         case commands.MG_NAV_COMPLETED:
         case commands.MG_NAV_STARTING:
@@ -299,6 +347,7 @@ function updateNavigationUI(reason) {
             updateURI();
             updateLockIcon();
             updateFavicon();
+            updateFavoriteIcon();
             updateReloadButton();
             updateBackForwardButtons();
             break;
@@ -429,17 +478,17 @@ function refreshControls() {
     addressInput.id = 'address-field';
     addressInput.type = 'text';
     addressBar.append(addressInput);
+
+    let favoriteButton = document.createElement('div');
+    favoriteButton.className = 'icn';
+    favoriteButton.id = 'btn-fav';
+    addressBar.append(favoriteButton);
     controlsElement.append(addressBar);
 
     // Manage controls
     let manageControls = document.createElement('div');
     manageControls.className = 'controls-group';
     manageControls.id = 'manage-controls-container';
-
-    let favoriteButton = document.createElement('div');
-    favoriteButton.className = 'btn';
-    favoriteButton.id = 'btn-fav';
-    manageControls.append(favoriteButton);
 
     let optionsButton = document.createElement('div');
     optionsButton.className = 'btn';
@@ -486,6 +535,21 @@ function refreshTabs() {
     Array.from(tabs).map((tabEntry) => {
         loadTabUI(tabEntry[0]);
     });
+}
+
+function toggleFavorite() {
+    activeTab = tabs.get(activeTabId);
+    if (activeTab.isFavorite) {
+        removeFavorite(activeTab.uri, () => {
+            activeTab.isFavorite = false;
+            updateFavoriteIcon();
+        });
+    } else {
+        addFavorite(favoriteFromTab(activeTabId), () => {
+            activeTab.isFavorite = true;
+            updateFavoriteIcon();
+        });
+    }
 }
 
 function addControlsListeners() {
@@ -543,6 +607,10 @@ function addControlsListeners() {
 function addTabsListeners() {
     document.querySelector('#btn-new-tab').addEventListener('click', function(e) {
         createNewTab(true);
+    });
+
+    document.querySelector('#btn-fav').addEventListener('click', function(e) {
+        toggleFavorite();
     });
 }
 

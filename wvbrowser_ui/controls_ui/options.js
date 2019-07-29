@@ -2,7 +2,7 @@ function navigateToBrowserPage(path) {
     const navMessage = {
         message: commands.MG_NAVIGATE,
         args: {
-            uri: `edge://${path}`
+            uri: `browser://${path}`
         }
     };
 

@@ -21,6 +21,7 @@
 #security-label {
     display: inline-flex;
     height: 100%;
+    margin-left: 2px;
 
     vertical-align: top;
 }
@@ -89,6 +90,7 @@
 }
 
 #address-field {
+    flex: 1;
     padding: 0;
     border: none;
     border-radius: 5px;
@@ -100,4 +102,18 @@
 
 #address-field:focus {
     outline: none;
+}
+
+#btn-fav {
+    margin: 2px 5px;
+    background-size: 100%;
+    background-image: url('img/favorite.png');
+}
+
+#btn-fav:hover {
+    background-color: rgb(230, 230, 230);
+}
+
+#btn-fav.favorited {
+    background-image: url('img/favorited.png');
 }
