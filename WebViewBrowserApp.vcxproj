@@ -75,7 +75,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <OutDir>..\..\..\..\..\out\$(Configuration)_$(Platform)\</OutDir>
+    <OutDir>$(Configuration)_$(Platform)\</OutDir>
     <IncludePath>..\..\..\..\..;$(OutDir)EBWebView\x64;$(OutDir)gen\edge_embedded_browser\client\win\current;$(IncludePath)</IncludePath>
     <TargetName>WebView2Browser</TargetName>
   </PropertyGroup>
@@ -113,7 +113,8 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>$(OutDir)WebView2Loader.dll.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>
+      </AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy "$(ProjectDir)wvbrowser_ui" "$(OutDir)wvbrowser_ui" /S /I /Y</Command>
@@ -185,6 +186,7 @@
   <ImportGroup Label="ExtensionTargets">
     <Import Project="packages\Microsoft.Windows.ImplementationLibrary.1.0.190610.2\build\native\Microsoft.Windows.ImplementationLibrary.targets" Condition="Exists('packages\Microsoft.Windows.ImplementationLibrary.1.0.190610.2\build\native\Microsoft.Windows.ImplementationLibrary.targets')" />
     <Import Project="packages\cpprestsdk.v141.2.10.12.1\build\native\cpprestsdk.v141.targets" Condition="Exists('packages\cpprestsdk.v141.2.10.12.1\build\native\cpprestsdk.v141.targets')" />
+    <Import Project="packages\Microsoft.Web.WebView2.0.8.230\build\native\Microsoft.Web.WebView2.targets" Condition="Exists('packages\Microsoft.Web.WebView2.0.8.230\build\native\Microsoft.Web.WebView2.targets')" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
@@ -192,5 +194,6 @@
     </PropertyGroup>
     <Error Condition="!Exists('packages\Microsoft.Windows.ImplementationLibrary.1.0.190610.2\build\native\Microsoft.Windows.ImplementationLibrary.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Microsoft.Windows.ImplementationLibrary.1.0.190610.2\build\native\Microsoft.Windows.ImplementationLibrary.targets'))" />
     <Error Condition="!Exists('packages\cpprestsdk.v141.2.10.12.1\build\native\cpprestsdk.v141.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\cpprestsdk.v141.2.10.12.1\build\native\cpprestsdk.v141.targets'))" />
+    <Error Condition="!Exists('packages\Microsoft.Web.WebView2.0.8.230\build\native\Microsoft.Web.WebView2.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Microsoft.Web.WebView2.0.8.230\build\native\Microsoft.Web.WebView2.targets'))" />
   </Target>
 </Project>
