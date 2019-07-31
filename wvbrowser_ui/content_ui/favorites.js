@@ -42,9 +42,9 @@ function loadFavorites(payload) {
 
     payload.map(favorite => {
         let favoriteContainer = document.createElement('div');
-        favoriteContainer.className = 'favorite-container';
+        favoriteContainer.className = 'item-container';
         let favoriteElement = document.createElement('div');
-        favoriteElement.className = 'favorite';
+        favoriteElement.className = 'item';
 
         let faviconElement = document.createElement('div');
         faviconElement.className = 'favicon';

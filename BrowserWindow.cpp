@@ -355,14 +355,14 @@ void BrowserWindow::SetUIMessageBroker()
             {
                 // No encoded search URI
                 std::wstring path = uri.substr(browserScheme.size());
-                if (path.compare(L"favorites") == 0)
+                if (path.compare(L"favorites") == 0 ||
+                    path.compare(L"settings") == 0 ||
+                    path.compare(L"history") == 0)
                 {
-                    std::wstring fullPath = GetFullPathFor(L"wvbrowser_ui\\content_ui\\favorites.html");
-                    THROW_IF_FAILED(m_tabs.at(m_activeTabId)->m_contentWebview->Navigate(fullPath.c_str()));
-                }
-                else if (path.compare(L"settings") == 0)
-                {
-                    std::wstring fullPath = GetFullPathFor(L"wvbrowser_ui\\content_ui\\settings.html");
+                    std::wstring filePath(L"wvbrowser_ui\\content_ui\\");
+                    filePath.append(path);
+                    filePath.append(L".html");
+                    std::wstring fullPath = GetFullPathFor(filePath.c_str());
                     THROW_IF_FAILED(m_tabs.at(m_activeTabId)->m_contentWebview->Navigate(fullPath.c_str()));
                 }
                 else
@@ -433,6 +433,7 @@ void BrowserWindow::SetUIMessageBroker()
         break;
         case MG_GET_FAVORITES:
         case MG_GET_SETTINGS:
+        case MG_GET_HISTORY:
         {
             // Forward back to requesting tab
             size_t tabId = args.at(L"tabId").as_number().to_uint32();
@@ -480,6 +481,7 @@ void BrowserWindow::HandleTabURIUpdate(size_t tabId, IWebView2WebView* webview)
     std::wstring uri(source.get());
     std::wstring favoritesURI = GetFilePathAsURI(GetFullPathFor(L"wvbrowser_ui\\content_ui\\favorites.html"));
     std::wstring settingsURI = GetFilePathAsURI(GetFullPathFor(L"wvbrowser_ui\\content_ui\\settings.html"));
+    std::wstring historyURI = GetFilePathAsURI(GetFullPathFor(L"wvbrowser_ui\\content_ui\\history.html"));
 
     if (uri.compare(favoritesURI) == 0)
     {
@@ -488,6 +490,10 @@ void BrowserWindow::HandleTabURIUpdate(size_t tabId, IWebView2WebView* webview)
     else if (uri.compare(settingsURI) == 0)
     {
         jsonObj[L"args"][L"uriToShow"] = web::json::value(L"browser://settings");
+    }
+    else if (uri.compare(historyURI) == 0)
+    {
+        jsonObj[L"args"][L"uriToShow"] = web::json::value(L"browser://history");
     }
 
     BOOL canGoForward = FALSE;
@@ -511,7 +517,7 @@ void BrowserWindow::HandleTabNavStarting(size_t tabId, IWebView2WebView* webview
     PostJsonToWebView(jsonObj, m_controlsWebView.Get());
 }
 
-void BrowserWindow::HandleTabNavCompleted(size_t tabId, IWebView2WebView* webview)
+void BrowserWindow::HandleTabNavCompleted(size_t tabId, IWebView2WebView* webview, IWebView2NavigationCompletedEventArgs* args)
 {
     std::wstring getTitleScript(
         // Look for a title tag
@@ -604,6 +610,12 @@ void BrowserWindow::HandleTabNavCompleted(size_t tabId, IWebView2WebView* webvie
     jsonObj[L"message"] = web::json::value(MG_NAV_COMPLETED);
     jsonObj[L"args"] = web::json::value::parse(L"{}");
     jsonObj[L"args"][L"tabId"] = web::json::value::number(tabId);
+
+    BOOL navigationSucceeded = FALSE;
+    if (SUCCEEDED(args->get_IsSuccess(&navigationSucceeded)))
+    {
+        jsonObj[L"args"][L"isError"] = web::json::value::boolean(!navigationSucceeded);
+    }
 
     PostJsonToWebView(jsonObj, m_controlsWebView.Get());
 }
@@ -715,6 +727,19 @@ void BrowserWindow::HandleTabMessageReceived(size_t tabId, IWebView2WebView* web
             }
 
             PostJsonToWebView(jsonObj, m_tabs.at(tabId)->m_contentWebview.Get());
+        }
+    }
+    break;
+    case MG_GET_HISTORY:
+    case MG_REMOVE_HISTORY_ITEM:
+    case MG_CLEAR_HISTORY:
+    {
+        std::wstring fileURI = GetFilePathAsURI(GetFullPathFor(L"wvbrowser_ui\\content_ui\\history.html"));
+        // Only the history UI can request history
+        if (fileURI.compare(uri.get()) == 0)
+        {
+            jsonObj[L"args"][L"tabId"] = web::json::value::number(tabId);
+            PostJsonToWebView(jsonObj, m_controlsWebView.Get());
         }
     }
     break;

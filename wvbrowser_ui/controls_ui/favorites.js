@@ -1,32 +1,3 @@
-function handleUpgradeEvent(event) {
-    console.log('Creating DB');
-    let newDB = event.target.result;
-    let newFavoritesStore = newDB.createObjectStore('favorites', { keyPath: 'uri' });
-
-    newFavoritesStore.transaction.oncomplete = function(event) {
-        console.log('favoritesStore created');
-    };
-
-    newFavoritesStore.transaction.onerror = function(event) {
-        console.log('Could not create object store for favorites');
-    };
-}
-
-function queryDB(query) {
-    let request = window.indexedDB.open('WVBrowser');
-
-    request.onerror = function(event) {
-        console.log('Failed to open database');
-    };
-
-    request.onsuccess = function(event) {
-        let db = event.target.result;
-        query(db);
-    };
-
-    request.onupgradeneeded = handleUpgradeEvent;
-}
-
 function isFavorite(uri, callback) {
     queryDB((db) => {
         let transaction = db.transaction(['favorites']);
@@ -69,7 +40,7 @@ function removeFavorite(key, callback) {
         let removeFavoriteRequest = favoritesStore.delete(key);
 
         removeFavoriteRequest.onerror = function(event) {
-            console.log(`Could not remove favorite with key: ${favorite.uri}`);
+            console.log(`Could not remove favorite with key: ${key}`);
             console.log(event.target.error.message);
         };
 

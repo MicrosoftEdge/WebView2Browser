@@ -23,7 +23,7 @@ public:
     std::wstring GetFullPathFor(LPCWSTR relativePath);
     void HandleTabURIUpdate(size_t tabId, IWebView2WebView* webview);
     void HandleTabNavStarting(size_t tabId, IWebView2WebView* webview);
-    void HandleTabNavCompleted(size_t tabId, IWebView2WebView* webview);
+    void HandleTabNavCompleted(size_t tabId, IWebView2WebView* webview, IWebView2NavigationCompletedEventArgs* args);
     void HandleTabSecurityUpdate(size_t tabId, IWebView2WebView* webview, IWebView2DevToolsProtocolEventReceivedEventArgs* args);
     void HandleTabCreated(size_t tabId, bool shouldBeActive);
     void HandleTabMessageReceived(size_t tabId, IWebView2WebView* webview, IWebView2WebMessageReceivedEventArgs* eventArgs);

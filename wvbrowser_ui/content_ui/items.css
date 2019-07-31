@@ -1,10 +1,10 @@
-.favorite-container {
+.item-container {
     box-sizing: border-box;
     padding: 4px 0;
     height: 48px;
 }
 
-.favorite {
+.item {
     display: flex;
     width: 100%;
     max-width: 820px;
@@ -17,7 +17,7 @@
     background: rgb(255, 255, 255);
 }
 
-.favorite:hover {
+.item:hover {
     box-shadow: 0px 4.8px 10.8px rgba(0,0,0,0.13), 0px 0.9px 2.7px rgba(0,0,0,0.11);
 }
 
@@ -64,14 +64,14 @@
     text-decoration: underline;
 }
 
-.label-uri {
+.label-uri, .label-time {
     margin: 0 6px;
     line-height: 16px;
     font-size: 12px;
     color: rgb(115, 115, 115);
 }
 
-.label-uri p {
+.label-uri p, .label-time p {
     display: block;
     white-space: nowrap;
     overflow: hidden;

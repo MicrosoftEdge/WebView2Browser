@@ -15,6 +15,7 @@ const messageHandler = event => {
         case commands.MG_UPDATE_URI:
             if (isValidTabId(args.tabId)) {
                 const tab = tabs.get(args.tabId);
+                let previousURI = tab.uri;
 
                 // Update the tab state
                 tab.uri = args.uri;
@@ -30,6 +31,26 @@ const messageHandler = event => {
                 isFavorite(tab.uri, (isFavorite) => {
                     tab.isFavorite = isFavorite;
                     updateFavoriteIcon();
+                });
+
+                // Don't add history entry if URI has not changed
+                if (tab.uri == previousURI) {
+                    break;
+                }
+
+                // Filter URIs that should not appear in history
+                if (!tab.uri || tab.uri == 'about:blank') {
+                    tab.historyItemId = INVALID_HISTORY_ID;
+                    break;
+                }
+
+                if (tab.uriToShow && tab.uriToShow.substring(0, 10) == 'browser://') {
+                    tab.historyItemId = INVALID_HISTORY_ID;
+                    break;
+                }
+
+                addHistoryItem(historyItemFromTab(args.tabId), (id) => {
+                    tab.historyItemId = id;
                 });
             }
             break;
@@ -71,6 +92,12 @@ const messageHandler = event => {
                 const tabLabel = tabElement.firstChild;
                 const tabLabelSpan = tabLabel.firstChild;
                 tabLabelSpan.innerText = tab.title;
+
+                // Update title in history item
+                // Browser pages will keep an invalid history ID
+                if (tab.historyItemId != INVALID_HISTORY_ID) {
+                    updateHistoryItem(tab.historyItemId, historyItemFromTab(args.tabId));
+                }
             }
             break;
         case commands.MG_OPTIONS_LOST_FOCUS:
@@ -115,6 +142,20 @@ const messageHandler = event => {
                 args.settings = settings;
                 window.chrome.webview.postMessage(event.data);
             }
+            break;
+        case commands.MG_GET_HISTORY:
+            if (isValidTabId(args.tabId)) {
+                getHistoryItems(args.from, args.count, (payload) => {
+                    args.items = payload;
+                    window.chrome.webview.postMessage(event.data);
+                });
+            }
+            break;
+        case commands.MG_REMOVE_HISTORY_ITEM:
+            removeHistoryItem(args.id);
+            break;
+        case commands.MG_CLEAR_HISTORY:
+            clearHistory();
             break;
         default:
             console.log(`Received unexpected message: ${JSON.stringify(event.data)}`);

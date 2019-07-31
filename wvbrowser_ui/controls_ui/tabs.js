@@ -33,7 +33,8 @@ function createNewTab(shouldBeActive) {
         isLoading: false,
         canGoBack: false,
         canGoForward: false,
-        securityState: 'unknown'
+        securityState: 'unknown',
+        historyItemId: INVALID_HISTORY_ID
     });
 
     loadTabUI(tabId);
@@ -143,7 +144,7 @@ function updateFaviconURI(tabId, src) {
             tab.favicon = src;
 
             if (tabId == activeTabId) {
-                updateNavigationUI(commands.MG_UPDATE_FAVICON);
+                updatedFaviconURIHandler(tabId, tab);
             }
         };
 
@@ -165,11 +166,20 @@ function updateFaviconURI(tabId, src) {
             img.onerror = () => {
                 console.log('No favicon in site root. Using default favicon.');
                 tab.favicon = 'img/favicon.png';
-                updateNavigationUI(commands.MG_UPDATE_FAVICON);
+                updatedFaviconURIHandler(tabId, tab);
             };
         }
 
         img.src = src;
+    }
+}
+
+function updatedFaviconURIHandler(tabId, tab) {
+    updateNavigationUI(commands.MG_UPDATE_FAVICON);
+
+    // Update favicon in history item
+    if (tab.historyItemId != INVALID_HISTORY_ID) {
+        updateHistoryItem(tab.historyItemId, historyItemFromTab(tabId));
     }
 }
 
@@ -187,4 +197,20 @@ function favoriteFromTab(tabId) {
         title: tab.title,
         favicon: favicon
     };
+}
+
+function historyItemFromTab(tabId) {
+    if (!isValidTabId(tabId)) {
+        console.log('Invalid tab ID');
+        return;
+    }
+
+    let tab = tabs.get(tabId);
+    let favicon = tab.favicon == 'img/favicon.png' ? '../controls_ui/' + tab.favicon : tab.favicon;
+    return {
+        uri: tab.uri,
+        title: tab.title,
+        favicon: favicon,
+        timestamp: new Date()
+    }
 }

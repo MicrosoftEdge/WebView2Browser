@@ -1,9 +1,8 @@
 #address-bar-container {
     display: flex;
     height: calc(100% - 10px);
-    min-width: 400px;
-    width: 70%;
-    max-width: calc(100% - 250px);
+    width: 80%;
+    max-width: calc(100% - 160px);
 
     background-color: white;
     border: 1px solid gray;

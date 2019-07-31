@@ -52,7 +52,7 @@ void Tab::Init(IWebView2Environment* env, bool shouldBeActive)
         THROW_IF_FAILED(m_contentWebview->add_NavigationCompleted(Callback<IWebView2NavigationCompletedEventHandler>(
             [this, browserWindow](IWebView2WebView* webview, IWebView2NavigationCompletedEventArgs* args) -> HRESULT
         {
-            browserWindow->HandleTabNavCompleted(m_tabId, webview);
+            browserWindow->HandleTabNavCompleted(m_tabId, webview, args);
             return S_OK;
         }).Get(), &m_navCompletedToken));
 
