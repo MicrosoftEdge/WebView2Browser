@@ -252,6 +252,11 @@ void BrowserWindow::CreateBrowserControlsWebView()
         }
         // WebView created
         m_controlsWebView = webview;
+
+        wil::com_ptr<IWebView2Settings> settings;
+        RETURN_IF_FAILED(m_controlsWebView->get_Settings(&settings));
+        RETURN_IF_FAILED(settings->put_AreDevToolsEnabled(FALSE));
+
         RETURN_IF_FAILED(m_controlsWebView->add_WebMessageReceived(m_uiMessageBroker.Get(), &m_controlsUIMessageBrokerToken));
         ResizeUIWebViews();
 
@@ -274,6 +279,11 @@ void BrowserWindow::CreateBrowserOptionsWebView()
         }
         // WebView created
         m_optionsWebView = webview;
+
+        wil::com_ptr<IWebView2Settings> settings;
+        RETURN_IF_FAILED(m_optionsWebView->get_Settings(&settings));
+        RETURN_IF_FAILED(settings->put_AreDevToolsEnabled(FALSE));
+
         // Hide by default
         RETURN_IF_FAILED(m_optionsWebView->put_IsVisible(FALSE));
         RETURN_IF_FAILED(m_optionsWebView->add_WebMessageReceived(m_uiMessageBroker.Get(), &m_optionsUIMessageBrokerToken));

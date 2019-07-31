@@ -10,6 +10,7 @@
 #include <atlstr.h>
 #include <strsafe.h>
 #include <wil/result.h>
+#include <wil/com.h>
 #include <windows.h>
 #include <wrl.h>
 // C RunTime Header Files
