@@ -527,6 +527,7 @@ function refreshControls() {
     addressInput.id = 'address-field';
     addressInput.placeholder = 'Search or enter web address';
     addressInput.type = 'text';
+    addressInput.spellcheck = false;
     addressBar.append(addressInput);
 
     let clearButton = document.createElement('button');
