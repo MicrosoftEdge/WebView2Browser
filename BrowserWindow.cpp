@@ -256,6 +256,7 @@ void BrowserWindow::CreateBrowserControlsWebView()
         wil::com_ptr<IWebView2Settings> settings;
         RETURN_IF_FAILED(m_controlsWebView->get_Settings(&settings));
         RETURN_IF_FAILED(settings->put_AreDevToolsEnabled(FALSE));
+        RETURN_IF_FAILED(settings->put_IsFullscreenAllowed(FALSE));
 
         RETURN_IF_FAILED(m_controlsWebView->add_WebMessageReceived(m_uiMessageBroker.Get(), &m_controlsUIMessageBrokerToken));
         ResizeUIWebViews();
@@ -283,6 +284,7 @@ void BrowserWindow::CreateBrowserOptionsWebView()
         wil::com_ptr<IWebView2Settings> settings;
         RETURN_IF_FAILED(m_optionsWebView->get_Settings(&settings));
         RETURN_IF_FAILED(settings->put_AreDevToolsEnabled(FALSE));
+        RETURN_IF_FAILED(settings->put_IsFullscreenAllowed(FALSE));
 
         // Hide by default
         RETURN_IF_FAILED(m_optionsWebView->put_IsVisible(FALSE));

@@ -213,6 +213,14 @@ function navigateActiveTab(uri, isSearch) {
     window.chrome.webview.postMessage(message);
 }
 
+function reloadActiveTabContent() {
+    var message = {
+        message: commands.MG_RELOAD,
+        args: {}
+    };
+    window.chrome.webview.postMessage(message);
+}
+
 function containsIlegalCharacters(query) {
     return !VALID_URI_REGEX.test(query);
 }
@@ -656,11 +664,7 @@ function addControlsListeners() {
             };
             window.chrome.webview.postMessage(message);
         } else if (btnReload.className === 'btn') {
-            var message = {
-                message: commands.MG_RELOAD,
-                args: {}
-            };
-            window.chrome.webview.postMessage(message);
+            reloadActiveTabContent();
         }
     });
 
@@ -668,6 +672,27 @@ function addControlsListeners() {
         toggleOptionsDropdown();
     });
 
+    window.onkeydown = function(event) {
+        if (event.ctrlKey) {
+            switch (event.which) {
+                case 'R'.charCodeAt():
+                    reloadActiveTabContent();
+                    break;
+                case 'D'.charCodeAt():
+                    toggleFavorite();
+                    break;
+                case 'T'.charCodeAt():
+                    createNewTab(true);
+                    break;
+                case 'P'.charCodeAt():
+                    break;
+                default:
+                    return;
+            }
+
+            event.preventDefault();
+        }
+    };
 }
 
 function addTabsListeners() {
