@@ -61,5 +61,6 @@
   <ItemGroup>
     <None Include="ui_bar.html" />
     <None Include="packages.config" />
+    <None Include="$(MSBuildThisFileDirectory)$(EffectivePlatform)\WebView2Loader.dll" />
   </ItemGroup>
 </Project>
