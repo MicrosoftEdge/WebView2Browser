@@ -57,7 +57,7 @@ LRESULT CALLBACK BrowserWindow::WndProcStatic(HWND hWnd, UINT message, WPARAM wP
     BrowserWindow* browser_window = reinterpret_cast<BrowserWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
     if (browser_window != nullptr)
     {
-        return browser_window->WndProc(hWnd, message, wParam, lParam);  // forward message to instance-aware WndProc
+        return browser_window->WndProc(hWnd, message, wParam, lParam);  // Forward message to instance-aware WndProc
     }
     else
     {

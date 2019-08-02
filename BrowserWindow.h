@@ -30,10 +30,10 @@ public:
     int GetDPIAwareBound(int bound);
     static void CheckFailure(HRESULT hr, LPCWSTR errorMessage);
 protected:
-    HINSTANCE m_hInst = nullptr;  // current app instance
+    HINSTANCE m_hInst = nullptr;  // Current app instance
     HWND m_hWnd = nullptr;
 
-    static WCHAR s_windowClass[MAX_LOADSTRING];  // the window class name
+    static WCHAR s_windowClass[MAX_LOADSTRING];  // The window class name
     static WCHAR s_title[MAX_LOADSTRING];  // The title bar text
 
     int m_minWindowWidth = 0;
@@ -46,11 +46,11 @@ protected:
     std::map<size_t,std::unique_ptr<Tab>> m_tabs;
     size_t m_activeTabId = 0;
 
-    EventRegistrationToken m_controlsUIMessageBrokerToken = {};  // token for the UI message handler in controls WebView
+    EventRegistrationToken m_controlsUIMessageBrokerToken = {};  // Token for the UI message handler in controls WebView
     EventRegistrationToken m_controlsZoomToken = {};
-    EventRegistrationToken m_optionsUIMessageBrokerToken = {};  // token for the UI message handler in options WebView
+    EventRegistrationToken m_optionsUIMessageBrokerToken = {};  // Token for the UI message handler in options WebView
     EventRegistrationToken m_optionsZoomToken = {};
-    EventRegistrationToken m_lostOptionsFocus = {};  // token for the lost focus handler in options WebView
+    EventRegistrationToken m_lostOptionsFocus = {};  // Token for the lost focus handler in options WebView
     Microsoft::WRL::ComPtr<IWebView2WebMessageReceivedEventHandler> m_uiMessageBroker;
 
     BOOL InitInstance(HINSTANCE hInstance, int nCmdShow);

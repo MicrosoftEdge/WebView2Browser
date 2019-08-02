@@ -177,21 +177,21 @@ function tryNavigate(text) {
             case 'https:':
             case 'file:':
             case 'ftp:':
-                // allowed protocol, navigate
+                // Allowed protocol, navigate
                 navigateActiveTab(uriParser.href, false);
                 break;
             default:
-                // protocol not allowed, search Bing
+                // Protocol not allowed, search Bing
                 navigateActiveTab(getSearchURI(text), true);
                 break;
         }
     } catch (e) {
         // URL creation failed, check for invalid characters
         if (containsIlegalCharacters(text) || isSingleWord(text)) {
-            // search Bing
+            // Search Bing
             navigateActiveTab(getSearchURI(text), true);
         } else {
-            // try with HTTP
+            // Try with HTTP
             if (!hasScheme(text)) {
                 tryNavigate(`http:${text}`);
             } else {
