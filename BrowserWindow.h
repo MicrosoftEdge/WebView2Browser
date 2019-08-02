@@ -32,7 +32,6 @@ public:
 protected:
     HINSTANCE m_hInst = nullptr;  // current app instance
     HWND m_hWnd = nullptr;
-    static size_t s_windowInstanceCount;
 
     static WCHAR s_windowClass[MAX_LOADSTRING];  // the window class name
     static WCHAR s_title[MAX_LOADSTRING];  // The title bar text

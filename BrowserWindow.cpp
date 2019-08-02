@@ -11,7 +11,6 @@ using namespace Microsoft::WRL;
 
 WCHAR BrowserWindow::s_windowClass[] = { 0 };
 WCHAR BrowserWindow::s_title[] = { 0 };
-size_t BrowserWindow::s_windowInstanceCount = 0;
 
 //
 //  FUNCTION: RegisterClass()
@@ -113,12 +112,8 @@ LRESULT CALLBACK BrowserWindow::WndProc(HWND hWnd, UINT message, WPARAM wParam, 
     case WM_NCDESTROY:
     {
         SetWindowLongPtr(hWnd, GWLP_USERDATA, NULL);
-        --s_windowInstanceCount;
         delete this;
-        if (s_windowInstanceCount == 0)
-        {
-            PostQuitMessage(0);
-        }
+        PostQuitMessage(0);
     }
     case WM_PAINT:
     {
@@ -147,7 +142,6 @@ BOOL BrowserWindow::LaunchWindow(_In_ HINSTANCE hInstance, _In_ int nCmdShow)
         delete window;
         return FALSE;
     }
-    ++s_windowInstanceCount;
     return TRUE;
 }
 
