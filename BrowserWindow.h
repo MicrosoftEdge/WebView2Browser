@@ -47,7 +47,9 @@ protected:
     size_t m_activeTabId = 0;
 
     EventRegistrationToken m_controlsUIMessageBrokerToken = {};  // token for the UI message handler in controls WebView
+    EventRegistrationToken m_controlsZoomToken = {};
     EventRegistrationToken m_optionsUIMessageBrokerToken = {};  // token for the UI message handler in options WebView
+    EventRegistrationToken m_optionsZoomToken = {};
     EventRegistrationToken m_lostOptionsFocus = {};  // token for the lost focus handler in options WebView
     Microsoft::WRL::ComPtr<IWebView2WebMessageReceivedEventHandler> m_uiMessageBroker;
 

@@ -675,17 +675,25 @@ function addControlsListeners() {
 
     window.onkeydown = function(event) {
         if (event.ctrlKey) {
-            switch (event.which) {
-                case 'R'.charCodeAt():
+            switch (event.key) {
+                case 'r':
+                case 'R':
                     reloadActiveTabContent();
                     break;
-                case 'D'.charCodeAt():
+                case 'd':
+                case 'D':
                     toggleFavorite();
                     break;
-                case 'T'.charCodeAt():
+                case 't':
+                case 'T':
                     createNewTab(true);
                     break;
-                case 'P'.charCodeAt():
+                case 'p':
+                case 'P':
+                case '+':
+                case '-':
+                case '_':
+                case '=':
                     break;
                 default:
                     return;
@@ -694,6 +702,12 @@ function addControlsListeners() {
             event.preventDefault();
         }
     };
+
+    // Prevent zooming the UI
+    window.addEventListener('wheel', function(event) {
+        if (event.ctrlKey) {
+            event.preventDefault();
+        }}, { passive: false });
 }
 
 function addTabsListeners() {

@@ -252,6 +252,14 @@ HRESULT BrowserWindow::CreateBrowserControlsWebView()
         RETURN_IF_FAILED(settings->put_AreDevToolsEnabled(FALSE));
         RETURN_IF_FAILED(settings->put_IsFullscreenAllowed(FALSE));
 
+        RETURN_IF_FAILED(m_controlsWebView->add_ZoomFactorChanged(Callback<IWebView2ZoomFactorChangedEventHandler>(
+            [](IWebView2WebView* webview, IUnknown* args) -> HRESULT
+        {
+            webview->put_ZoomFactor(1.0);
+            return S_OK;
+        }
+        ).Get(), &m_controlsZoomToken));
+
         RETURN_IF_FAILED(m_controlsWebView->add_WebMessageReceived(m_uiMessageBroker.Get(), &m_controlsUIMessageBrokerToken));
         RETURN_IF_FAILED(ResizeUIWebViews());
 
@@ -279,6 +287,14 @@ HRESULT BrowserWindow::CreateBrowserOptionsWebView()
         RETURN_IF_FAILED(m_optionsWebView->get_Settings(&settings));
         RETURN_IF_FAILED(settings->put_AreDevToolsEnabled(FALSE));
         RETURN_IF_FAILED(settings->put_IsFullscreenAllowed(FALSE));
+
+        RETURN_IF_FAILED(m_optionsWebView->add_ZoomFactorChanged(Callback<IWebView2ZoomFactorChangedEventHandler>(
+            [](IWebView2WebView* webview, IUnknown* args) -> HRESULT
+        {
+            webview->put_ZoomFactor(1.0);
+            return S_OK;
+        }
+        ).Get(), &m_optionsZoomToken));
 
         // Hide by default
         RETURN_IF_FAILED(m_optionsWebView->put_IsVisible(FALSE));
