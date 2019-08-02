@@ -21,19 +21,19 @@ std::unique_ptr<Tab> Tab::CreateNewTab(HWND hWnd, IWebView2Environment* env, siz
 
 HRESULT Tab::Init(IWebView2Environment* env, bool shouldBeActive)
 {
-    RETURN_IF_FAILED(env->CreateWebView(m_parentHWnd, Callback<IWebView2CreateWebViewCompletedHandler>(
+    return env->CreateWebView(m_parentHWnd, Callback<IWebView2CreateWebViewCompletedHandler>(
         [this, shouldBeActive](HRESULT result, IWebView2WebView* webview) -> HRESULT {
         if (!SUCCEEDED(result))
         {
             OutputDebugString(L"Tab WebView creation failed\n");
             return result;
         }
-        m_contentWebview = webview;
+        m_contentWebView = webview;
         BrowserWindow* browserWindow = reinterpret_cast<BrowserWindow*>(GetWindowLongPtr(m_parentHWnd, GWLP_USERDATA));
-        RETURN_IF_FAILED(m_contentWebview->add_WebMessageReceived(m_messageBroker.Get(), &m_messageBrokerToken));
+        RETURN_IF_FAILED(m_contentWebView->add_WebMessageReceived(m_messageBroker.Get(), &m_messageBrokerToken));
 
         // Register event handler for doc state change
-        RETURN_IF_FAILED(m_contentWebview->add_DocumentStateChanged(Callback<IWebView2DocumentStateChangedEventHandler>(
+        RETURN_IF_FAILED(m_contentWebView->add_DocumentStateChanged(Callback<IWebView2DocumentStateChangedEventHandler>(
             [this, browserWindow](IWebView2WebView* webview, IWebView2DocumentStateChangedEventArgs* args) -> HRESULT
         {
             BrowserWindow::CheckFailure(browserWindow->HandleTabURIUpdate(m_tabId, webview), L"Can't update address bar");
@@ -41,7 +41,7 @@ HRESULT Tab::Init(IWebView2Environment* env, bool shouldBeActive)
             return S_OK;
         }).Get(), &m_uriUpdateForwarderToken));
 
-        RETURN_IF_FAILED(m_contentWebview->add_NavigationStarting(Callback<IWebView2NavigationStartingEventHandler>(
+        RETURN_IF_FAILED(m_contentWebView->add_NavigationStarting(Callback<IWebView2NavigationStartingEventHandler>(
             [this, browserWindow](IWebView2WebView* webview, IWebView2NavigationStartingEventArgs* args) -> HRESULT
         {
             BrowserWindow::CheckFailure(browserWindow->HandleTabNavStarting(m_tabId, webview), L"Can't update reload button");
@@ -49,7 +49,7 @@ HRESULT Tab::Init(IWebView2Environment* env, bool shouldBeActive)
             return S_OK;
         }).Get(), &m_navStartingToken));
 
-        RETURN_IF_FAILED(m_contentWebview->add_NavigationCompleted(Callback<IWebView2NavigationCompletedEventHandler>(
+        RETURN_IF_FAILED(m_contentWebView->add_NavigationCompleted(Callback<IWebView2NavigationCompletedEventHandler>(
             [this, browserWindow](IWebView2WebView* webview, IWebView2NavigationCompletedEventArgs* args) -> HRESULT
         {
             BrowserWindow::CheckFailure(browserWindow->HandleTabNavCompleted(m_tabId, webview, args), L"Can't udpate reload button");
@@ -57,21 +57,21 @@ HRESULT Tab::Init(IWebView2Environment* env, bool shouldBeActive)
         }).Get(), &m_navCompletedToken));
 
         // Enable listening for security events to update secure icon
-        RETURN_IF_FAILED(m_contentWebview->CallDevToolsProtocolMethod(L"Security.enable", L"{}", nullptr));
+        RETURN_IF_FAILED(m_contentWebView->CallDevToolsProtocolMethod(L"Security.enable", L"{}", nullptr));
 
         // Forward security status updates to browser
-        RETURN_IF_FAILED(m_contentWebview->add_DevToolsProtocolEventReceived(L"Security.securityStateChanged", Callback<IWebView2DevToolsProtocolEventReceivedEventHandler>(
+        RETURN_IF_FAILED(m_contentWebView->add_DevToolsProtocolEventReceived(L"Security.securityStateChanged", Callback<IWebView2DevToolsProtocolEventReceivedEventHandler>(
             [this, browserWindow](IWebView2WebView* webview, IWebView2DevToolsProtocolEventReceivedEventArgs* args) -> HRESULT
         {
             BrowserWindow::CheckFailure(browserWindow->HandleTabSecurityUpdate(m_tabId, webview, args), L"Can't udpate security icon");
             return S_OK;
         }).Get(), &m_securityUpdateToken));
 
-        RETURN_IF_FAILED(m_contentWebview->Navigate(L"https://www.bing.com"));
+        RETURN_IF_FAILED(m_contentWebView->Navigate(L"https://www.bing.com"));
         browserWindow->HandleTabCreated(m_tabId, shouldBeActive);
 
         return S_OK;
-    }).Get()));
+    }).Get());
 }
 
 void Tab::SetMessageBroker()
@@ -96,5 +96,5 @@ HRESULT Tab::ResizeWebView()
     bounds.top += browserWindow->GetDPIAwareBound(BrowserWindow::c_uiBarHeight) / 2;
     bounds.bottom -= bounds.top;
 
-    RETURN_IF_FAILED(m_contentWebview->put_Bounds(bounds));
+    return m_contentWebView->put_Bounds(bounds);
 }

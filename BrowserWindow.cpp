@@ -363,7 +363,7 @@ void BrowserWindow::SetUIMessageBroker()
             }
             else
             {
-                m_tabs.at(id)->m_contentWebview->Close();
+                m_tabs.at(id)->m_contentWebView->Close();
                 it->second = std::move(newTab);
             }
         }
@@ -385,37 +385,37 @@ void BrowserWindow::SetUIMessageBroker()
                     filePath.append(path);
                     filePath.append(L".html");
                     std::wstring fullPath = GetFullPathFor(filePath.c_str());
-                    CheckFailure(m_tabs.at(m_activeTabId)->m_contentWebview->Navigate(fullPath.c_str()), L"Can't navigate to browser page.");
+                    CheckFailure(m_tabs.at(m_activeTabId)->m_contentWebView->Navigate(fullPath.c_str()), L"Can't navigate to browser page.");
                 }
                 else
                 {
                     OutputDebugString(L"Requested unknown browser page\n");
                 }
             }
-            else if (!SUCCEEDED(m_tabs.at(m_activeTabId)->m_contentWebview->Navigate(uri.c_str())))
+            else if (!SUCCEEDED(m_tabs.at(m_activeTabId)->m_contentWebView->Navigate(uri.c_str())))
             {
-                CheckFailure(m_tabs.at(m_activeTabId)->m_contentWebview->Navigate(args.at(L"encodedSearchURI").as_string().c_str()), L"Can't navigate to requested page.");
+                CheckFailure(m_tabs.at(m_activeTabId)->m_contentWebView->Navigate(args.at(L"encodedSearchURI").as_string().c_str()), L"Can't navigate to requested page.");
             }
         }
         break;
         case MG_GO_FORWARD:
         {
-            CheckFailure(m_tabs.at(m_activeTabId)->m_contentWebview->GoForward(), L"");
+            CheckFailure(m_tabs.at(m_activeTabId)->m_contentWebView->GoForward(), L"");
         }
         break;
         case MG_GO_BACK:
         {
-            CheckFailure(m_tabs.at(m_activeTabId)->m_contentWebview->GoBack(), L"");
+            CheckFailure(m_tabs.at(m_activeTabId)->m_contentWebView->GoBack(), L"");
         }
         break;
         case MG_RELOAD:
         {
-            CheckFailure(m_tabs.at(m_activeTabId)->m_contentWebview->Reload(), L"");
+            CheckFailure(m_tabs.at(m_activeTabId)->m_contentWebView->Reload(), L"");
         }
         break;
         case MG_CANCEL:
         {
-            CheckFailure(m_tabs.at(m_activeTabId)->m_contentWebview->CallDevToolsProtocolMethod(L"Page.stopLoading", L"{}", nullptr), L"");
+            CheckFailure(m_tabs.at(m_activeTabId)->m_contentWebView->CallDevToolsProtocolMethod(L"Page.stopLoading", L"{}", nullptr), L"");
         }
         break;
         case MG_SWITCH_TAB:
@@ -428,7 +428,7 @@ void BrowserWindow::SetUIMessageBroker()
         case MG_CLOSE_TAB:
         {
             size_t id = args.at(L"tabId").as_number().to_uint32();
-            m_tabs.at(id)->m_contentWebview->Close();
+            m_tabs.at(id)->m_contentWebView->Close();
             m_tabs.erase(id);
         }
         break;
@@ -450,7 +450,7 @@ void BrowserWindow::SetUIMessageBroker()
         break;
         case MG_OPTION_SELECTED:
         {
-            m_tabs.at(m_activeTabId)->m_contentWebview->MoveFocus(WEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC);
+            m_tabs.at(m_activeTabId)->m_contentWebView->MoveFocus(WEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC);
         }
         break;
         case MG_GET_FAVORITES:
@@ -461,7 +461,7 @@ void BrowserWindow::SetUIMessageBroker()
             size_t tabId = args.at(L"tabId").as_number().to_uint32();
             jsonObj[L"args"].erase(L"tabId");
 
-            CheckFailure(PostJsonToWebView(jsonObj, m_tabs.at(tabId)->m_contentWebview.Get()), L"Requesting history failed.");
+            CheckFailure(PostJsonToWebView(jsonObj, m_tabs.at(tabId)->m_contentWebView.Get()), L"Requesting history failed.");
         }
         break;
         default:
@@ -480,12 +480,12 @@ HRESULT BrowserWindow::SwitchToTab(size_t tabId)
     size_t previousActiveTab = m_activeTabId;
 
     RETURN_IF_FAILED(m_tabs.at(tabId)->ResizeWebView());
-    RETURN_IF_FAILED(m_tabs.at(tabId)->m_contentWebview->put_IsVisible(TRUE));
+    RETURN_IF_FAILED(m_tabs.at(tabId)->m_contentWebView->put_IsVisible(TRUE));
     m_activeTabId = tabId;
 
     if (previousActiveTab != INVALID_TAB_ID && previousActiveTab != m_activeTabId)
     {
-        RETURN_IF_FAILED(m_tabs.at(previousActiveTab)->m_contentWebview->put_IsVisible(FALSE));
+        RETURN_IF_FAILED(m_tabs.at(previousActiveTab)->m_contentWebView->put_IsVisible(FALSE));
     }
 
     return S_OK;
@@ -529,6 +529,8 @@ HRESULT BrowserWindow::HandleTabURIUpdate(size_t tabId, IWebView2WebView* webvie
     jsonObj[L"args"][L"canGoBack"] = web::json::value::boolean(canGoBack);
 
     RETURN_IF_FAILED(PostJsonToWebView(jsonObj, m_controlsWebView.Get()));
+
+    return S_OK;
 }
 
 HRESULT BrowserWindow::HandleTabNavStarting(size_t tabId, IWebView2WebView* webview)
@@ -726,7 +728,7 @@ HRESULT BrowserWindow::HandleTabMessageReceived(size_t tabId, IWebView2WebView* 
                 jsonObj[L"args"][L"controls"] = web::json::value::boolean(true);
             }
 
-            CheckFailure(PostJsonToWebView(jsonObj, m_tabs.at(tabId)->m_contentWebview.Get()), L"");
+            CheckFailure(PostJsonToWebView(jsonObj, m_tabs.at(tabId)->m_contentWebView.Get()), L"");
         }
     }
     break;
@@ -750,7 +752,7 @@ HRESULT BrowserWindow::HandleTabMessageReceived(size_t tabId, IWebView2WebView* 
                 jsonObj[L"args"][L"controls"] = web::json::value::boolean(true);
             }
 
-            CheckFailure(PostJsonToWebView(jsonObj, m_tabs.at(tabId)->m_contentWebview.Get()), L"");
+            CheckFailure(PostJsonToWebView(jsonObj, m_tabs.at(tabId)->m_contentWebView.Get()), L"");
         }
     }
     break;
@@ -779,7 +781,7 @@ HRESULT BrowserWindow::HandleTabMessageReceived(size_t tabId, IWebView2WebView* 
 
 HRESULT BrowserWindow::ClearContentCache()
 {
-    return m_tabs.at(m_activeTabId)->m_contentWebview->CallDevToolsProtocolMethod(L"Network.clearBrowserCache", L"{}", nullptr);
+    return m_tabs.at(m_activeTabId)->m_contentWebView->CallDevToolsProtocolMethod(L"Network.clearBrowserCache", L"{}", nullptr);
 }
 
 HRESULT BrowserWindow::ClearControlsCache()
@@ -789,7 +791,7 @@ HRESULT BrowserWindow::ClearControlsCache()
 
 HRESULT BrowserWindow::ClearContentCookies()
 {
-    return m_tabs.at(m_activeTabId)->m_contentWebview->CallDevToolsProtocolMethod(L"Network.clearBrowserCookies", L"{}", nullptr);
+    return m_tabs.at(m_activeTabId)->m_contentWebView->CallDevToolsProtocolMethod(L"Network.clearBrowserCookies", L"{}", nullptr);
 }
 
 HRESULT BrowserWindow::ClearControlsCookies()

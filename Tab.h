@@ -9,7 +9,7 @@
 class Tab
 {
 public:
-    Microsoft::WRL::ComPtr<IWebView2WebView> m_contentWebview;
+    Microsoft::WRL::ComPtr<IWebView2WebView> m_contentWebView;
 
     static std::unique_ptr<Tab> CreateNewTab(HWND hWnd, IWebView2Environment* env, size_t id, bool shouldBeActive);
     HRESULT ResizeWebView();
