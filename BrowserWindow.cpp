@@ -227,16 +227,16 @@ HRESULT BrowserWindow::InitUIWebViews()
         // Environment is ready, create the WebView
         m_uiEnv = env;
 
-        CreateBrowserControlsWebView();
-        CreateBrowserOptionsWebView();
+        RETURN_IF_FAILED(CreateBrowserControlsWebView());
+        RETURN_IF_FAILED(CreateBrowserOptionsWebView());
 
         return S_OK;
     }).Get());
 }
 
-void BrowserWindow::CreateBrowserControlsWebView()
+HRESULT BrowserWindow::CreateBrowserControlsWebView()
 {
-    THROW_IF_FAILED(m_uiEnv->CreateWebView(m_hWnd, Callback<IWebView2CreateWebViewCompletedHandler>(
+    return m_uiEnv->CreateWebView(m_hWnd, Callback<IWebView2CreateWebViewCompletedHandler>(
         [this](HRESULT result, IWebView2WebView* webview) -> HRESULT
     {
         if (!SUCCEEDED(result))
@@ -259,12 +259,12 @@ void BrowserWindow::CreateBrowserControlsWebView()
         RETURN_IF_FAILED(m_controlsWebView->Navigate(controlsPath.c_str()));
 
         return S_OK;
-    }).Get()));
+    }).Get());
 }
 
-void BrowserWindow::CreateBrowserOptionsWebView()
+HRESULT BrowserWindow::CreateBrowserOptionsWebView()
 {
-    THROW_IF_FAILED(m_uiEnv->CreateWebView(m_hWnd, Callback<IWebView2CreateWebViewCompletedHandler>(
+    return m_uiEnv->CreateWebView(m_hWnd, Callback<IWebView2CreateWebViewCompletedHandler>(
         [this](HRESULT result, IWebView2WebView* webview) -> HRESULT
     {
         if (!SUCCEEDED(result))
@@ -303,7 +303,7 @@ void BrowserWindow::CreateBrowserOptionsWebView()
         RETURN_IF_FAILED(m_optionsWebView->Navigate(optionsPath.c_str()));
 
         return S_OK;
-    }).Get()));
+    }).Get());
 }
 
 // Set the message broker for the UI webview. This will capture messages from ui web content.

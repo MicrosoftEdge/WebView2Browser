@@ -53,8 +53,8 @@ protected:
 
     BOOL InitInstance(HINSTANCE hInstance, int nCmdShow);
     HRESULT InitUIWebViews();
-    void CreateBrowserControlsWebView();
-    void CreateBrowserOptionsWebView();
+    HRESULT CreateBrowserControlsWebView();
+    HRESULT CreateBrowserOptionsWebView();
     HRESULT ClearContentCache();
     HRESULT ClearControlsCache();
     HRESULT ClearContentCookies();
