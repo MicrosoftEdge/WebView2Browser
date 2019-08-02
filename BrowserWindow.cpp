@@ -106,7 +106,7 @@ LRESULT CALLBACK BrowserWindow::WndProc(HWND hWnd, UINT message, WPARAM wParam, 
         jsonObj[L"message"] = web::json::value(MG_CLOSE_WINDOW);
         jsonObj[L"args"] = web::json::value::parse(L"{}");
 
-        PostJsonToWebView(jsonObj, m_controlsWebView.Get());
+        CheckFailure(PostJsonToWebView(jsonObj, m_controlsWebView.Get()), L"Try again.");
     }
     break;
     case WM_NCDESTROY:
@@ -253,7 +253,7 @@ HRESULT BrowserWindow::CreateBrowserControlsWebView()
         RETURN_IF_FAILED(settings->put_IsFullscreenAllowed(FALSE));
 
         RETURN_IF_FAILED(m_controlsWebView->add_WebMessageReceived(m_uiMessageBroker.Get(), &m_controlsUIMessageBrokerToken));
-        ResizeUIWebViews();
+        RETURN_IF_FAILED(ResizeUIWebViews());
 
         std::wstring controlsPath = GetFullPathFor(L"wvbrowser_ui\\controls_ui\\default.html");
         RETURN_IF_FAILED(m_controlsWebView->Navigate(controlsPath.c_str()));
@@ -297,7 +297,7 @@ HRESULT BrowserWindow::CreateBrowserOptionsWebView()
             return S_OK;
         }).Get(), &m_lostOptionsFocus));
 
-        ResizeUIWebViews();
+        RETURN_IF_FAILED(ResizeUIWebViews());
 
         std::wstring optionsPath = GetFullPathFor(L"wvbrowser_ui\\controls_ui\\options.html");
         RETURN_IF_FAILED(m_optionsWebView->Navigate(optionsPath.c_str()));
@@ -445,7 +445,7 @@ void BrowserWindow::SetUIMessageBroker()
             size_t tabId = args.at(L"tabId").as_number().to_uint32();
             jsonObj[L"args"].erase(L"tabId");
 
-            PostJsonToWebView(jsonObj, m_tabs.at(tabId)->m_contentWebview.Get());
+            CheckFailure(PostJsonToWebView(jsonObj, m_tabs.at(tabId)->m_contentWebview.Get()), L"Requesting history failed.");
         }
         break;
         default:
@@ -473,10 +473,10 @@ void BrowserWindow::SwitchToTab(size_t tabId)
     }
 }
 
-void BrowserWindow::HandleTabURIUpdate(size_t tabId, IWebView2WebView* webview)
+HRESULT BrowserWindow::HandleTabURIUpdate(size_t tabId, IWebView2WebView* webview)
 {
     wil::unique_cotaskmem_string source;
-    THROW_IF_FAILED(webview->get_Source(&source));
+    RETURN_IF_FAILED(webview->get_Source(&source));
 
     web::json::value jsonObj = web::json::value::parse(L"{}");
     jsonObj[L"message"] = web::json::value(MG_UPDATE_URI);
@@ -503,27 +503,27 @@ void BrowserWindow::HandleTabURIUpdate(size_t tabId, IWebView2WebView* webview)
     }
 
     BOOL canGoForward = FALSE;
-    THROW_IF_FAILED(webview->get_CanGoForward(&canGoForward));
+    RETURN_IF_FAILED(webview->get_CanGoForward(&canGoForward));
     jsonObj[L"args"][L"canGoForward"] = web::json::value::boolean(canGoForward);
 
     BOOL canGoBack = FALSE;
-    THROW_IF_FAILED(webview->get_CanGoBack(&canGoBack));
+    RETURN_IF_FAILED(webview->get_CanGoBack(&canGoBack));
     jsonObj[L"args"][L"canGoBack"] = web::json::value::boolean(canGoBack);
 
-    PostJsonToWebView(jsonObj, m_controlsWebView.Get());
+    RETURN_IF_FAILED(PostJsonToWebView(jsonObj, m_controlsWebView.Get()));
 }
 
-void BrowserWindow::HandleTabNavStarting(size_t tabId, IWebView2WebView* webview)
+HRESULT BrowserWindow::HandleTabNavStarting(size_t tabId, IWebView2WebView* webview)
 {
     web::json::value jsonObj = web::json::value::parse(L"{}");
     jsonObj[L"message"] = web::json::value(MG_NAV_STARTING);
     jsonObj[L"args"] = web::json::value::parse(L"{}");
     jsonObj[L"args"][L"tabId"] = web::json::value::number(tabId);
 
-    PostJsonToWebView(jsonObj, m_controlsWebView.Get());
+    return PostJsonToWebView(jsonObj, m_controlsWebView.Get());
 }
 
-void BrowserWindow::HandleTabNavCompleted(size_t tabId, IWebView2WebView* webview, IWebView2NavigationCompletedEventArgs* args)
+HRESULT BrowserWindow::HandleTabNavCompleted(size_t tabId, IWebView2WebView* webview, IWebView2NavigationCompletedEventArgs* args)
 {
     std::wstring getTitleScript(
         // Look for a title tag
@@ -582,7 +582,7 @@ void BrowserWindow::HandleTabNavCompleted(size_t tabId, IWebView2WebView* webvie
         L"})();"
     );
 
-    THROW_IF_FAILED(webview->ExecuteScript(getTitleScript.c_str(), Callback<IWebView2ExecuteScriptCompletedHandler>(
+    CheckFailure(webview->ExecuteScript(getTitleScript.c_str(), Callback<IWebView2ExecuteScriptCompletedHandler>(
         [this, tabId](HRESULT error, PCWSTR result) -> HRESULT
     {
         RETURN_IF_FAILED(error);
@@ -593,11 +593,11 @@ void BrowserWindow::HandleTabNavCompleted(size_t tabId, IWebView2WebView* webvie
         jsonObj[L"args"][L"title"] = web::json::value::parse(result);
         jsonObj[L"args"][L"tabId"] = web::json::value::number(tabId);
 
-        PostJsonToWebView(jsonObj, m_controlsWebView.Get());
+        CheckFailure(PostJsonToWebView(jsonObj, m_controlsWebView.Get()), L"Can't update title.");
         return S_OK;
-    }).Get()));
+    }).Get()), L"Can't update title.");
 
-    THROW_IF_FAILED(webview->ExecuteScript(getFaviconURI.c_str(), Callback<IWebView2ExecuteScriptCompletedHandler>(
+    CheckFailure(webview->ExecuteScript(getFaviconURI.c_str(), Callback<IWebView2ExecuteScriptCompletedHandler>(
         [this, tabId](HRESULT error, PCWSTR result) -> HRESULT
     {
         RETURN_IF_FAILED(error);
@@ -608,9 +608,9 @@ void BrowserWindow::HandleTabNavCompleted(size_t tabId, IWebView2WebView* webvie
         jsonObj[L"args"][L"uri"] = web::json::value::parse(result);
         jsonObj[L"args"][L"tabId"] = web::json::value::number(tabId);
 
-        PostJsonToWebView(jsonObj, m_controlsWebView.Get());
+        CheckFailure(PostJsonToWebView(jsonObj, m_controlsWebView.Get()), L"Can't update favicon.");
         return S_OK;
-    }).Get()));
+    }).Get()), L"Can't update favicon");
 
     web::json::value jsonObj = web::json::value::parse(L"{}");
     jsonObj[L"message"] = web::json::value(MG_NAV_COMPLETED);
@@ -623,10 +623,10 @@ void BrowserWindow::HandleTabNavCompleted(size_t tabId, IWebView2WebView* webvie
         jsonObj[L"args"][L"isError"] = web::json::value::boolean(!navigationSucceeded);
     }
 
-    PostJsonToWebView(jsonObj, m_controlsWebView.Get());
+    return PostJsonToWebView(jsonObj, m_controlsWebView.Get());
 }
 
-void BrowserWindow::HandleTabSecurityUpdate(size_t tabId, IWebView2WebView* webview, IWebView2DevToolsProtocolEventReceivedEventArgs* args)
+HRESULT BrowserWindow::HandleTabSecurityUpdate(size_t tabId, IWebView2WebView* webview, IWebView2DevToolsProtocolEventReceivedEventArgs* args)
 {
     wil::unique_cotaskmem_string jsonArgs;
     args->get_ParameterObjectAsJson(&jsonArgs);
@@ -638,7 +638,7 @@ void BrowserWindow::HandleTabSecurityUpdate(size_t tabId, IWebView2WebView* webv
     jsonObj[L"args"][L"tabId"] = web::json::value::number(tabId);
     jsonObj[L"args"][L"state"] = securityEvent.at(L"securityState");
 
-    PostJsonToWebView(jsonObj, m_controlsWebView.Get());
+    return PostJsonToWebView(jsonObj, m_controlsWebView.Get());
 }
 
 void BrowserWindow::HandleTabCreated(size_t tabId, bool shouldBeActive)
@@ -674,7 +674,7 @@ void BrowserWindow::HandleTabMessageReceived(size_t tabId, IWebView2WebView* web
         if (fileURI.compare(source.get()) == 0)
         {
             jsonObj[L"args"][L"tabId"] = web::json::value::number(tabId);
-            PostJsonToWebView(jsonObj, m_controlsWebView.Get());
+            CheckFailure(PostJsonToWebView(jsonObj, m_controlsWebView.Get()), L"Couldn't perform favorite.");
         }
     }
     break;
@@ -685,7 +685,7 @@ void BrowserWindow::HandleTabMessageReceived(size_t tabId, IWebView2WebView* web
         if (fileURI.compare(source.get()) == 0)
         {
             jsonObj[L"args"][L"tabId"] = web::json::value::number(tabId);
-            PostJsonToWebView(jsonObj, m_controlsWebView.Get());
+            CheckFailure(PostJsonToWebView(jsonObj, m_controlsWebView.Get()), L"Couldn't retrieve settings.");
         }
     }
     break;
@@ -708,7 +708,7 @@ void BrowserWindow::HandleTabMessageReceived(size_t tabId, IWebView2WebView* web
                 jsonObj[L"args"][L"controls"] = web::json::value::boolean(true);
             }
 
-            PostJsonToWebView(jsonObj, m_tabs.at(tabId)->m_contentWebview.Get());
+            CheckFailure(PostJsonToWebView(jsonObj, m_tabs.at(tabId)->m_contentWebview.Get()), L"");
         }
     }
     break;
@@ -732,7 +732,7 @@ void BrowserWindow::HandleTabMessageReceived(size_t tabId, IWebView2WebView* web
                 jsonObj[L"args"][L"controls"] = web::json::value::boolean(true);
             }
 
-            PostJsonToWebView(jsonObj, m_tabs.at(tabId)->m_contentWebview.Get());
+            CheckFailure(PostJsonToWebView(jsonObj, m_tabs.at(tabId)->m_contentWebview.Get()), L"");
         }
     }
     break;
@@ -745,7 +745,7 @@ void BrowserWindow::HandleTabMessageReceived(size_t tabId, IWebView2WebView* web
         if (fileURI.compare(uri.get()) == 0)
         {
             jsonObj[L"args"][L"tabId"] = web::json::value::number(tabId);
-            PostJsonToWebView(jsonObj, m_controlsWebView.Get());
+            CheckFailure(PostJsonToWebView(jsonObj, m_controlsWebView.Get()), L"Couldn't perform history operation");
         }
     }
     break;
@@ -777,7 +777,7 @@ HRESULT BrowserWindow::ClearControlsCookies()
     return m_controlsWebView->CallDevToolsProtocolMethod(L"Network.clearBrowserCookies", L"{}", nullptr);
 }
 
-void BrowserWindow::ResizeUIWebViews()
+HRESULT BrowserWindow::ResizeUIWebViews()
 {
     if (m_controlsWebView != nullptr)
     {
@@ -786,7 +786,7 @@ void BrowserWindow::ResizeUIWebViews()
         bounds.bottom = bounds.top + GetDPIAwareBound(c_uiBarHeight);
         bounds.bottom += 1;
 
-        THROW_IF_FAILED(m_controlsWebView->put_Bounds(bounds));
+        RETURN_IF_FAILED(m_controlsWebView->put_Bounds(bounds));
     }
 
     if (m_optionsWebView != nullptr)
@@ -798,8 +798,10 @@ void BrowserWindow::ResizeUIWebViews()
         bounds.bottom = bounds.top + GetDPIAwareBound(c_optionsDropdownHeight);
         bounds.left = (bounds.right - GetDPIAwareBound(c_optionsDropdownWidth)) / 2;
 
-        THROW_IF_FAILED(m_optionsWebView->put_Bounds(bounds));
+        RETURN_IF_FAILED(m_optionsWebView->put_Bounds(bounds));
     }
+
+    return S_OK;
 }
 
 void BrowserWindow::UpdateMinWindowSize()
@@ -817,13 +819,21 @@ void BrowserWindow::UpdateMinWindowSize()
     m_minWindowHeight = GetDPIAwareBound(MIN_WINDOW_HEIGHT) + bordersHeight;
 }
 
-void BrowserWindow::CheckFailure(HRESULT hr)
+void BrowserWindow::CheckFailure(HRESULT hr, LPCWSTR errorMessage)
 {
     if (FAILED(hr))
     {
-        WCHAR message[512] = L"";
-        StringCchPrintf(message, ARRAYSIZE(message), L"Error: 0x%x", hr);
-        MessageBoxW(nullptr, message, nullptr, MB_OK);
+        std::wstring message;
+        if (!errorMessage || !errorMessage[0])
+        {
+            message = std::wstring(L"Something went wrong.");
+        }
+        else
+        {
+            message = std::wstring(errorMessage);
+        }
+
+        MessageBoxW(nullptr, message.c_str(), nullptr, MB_OK);
     }
 }
 
@@ -880,10 +890,10 @@ std::wstring BrowserWindow::GetFilePathAsURI(std::wstring fullPath)
     return fileURI;
 }
 
-void BrowserWindow::PostJsonToWebView(web::json::value jsonObj, IWebView2WebView* webview)
+HRESULT BrowserWindow::PostJsonToWebView(web::json::value jsonObj, IWebView2WebView* webview)
 {
     utility::stringstream_t stream;
     jsonObj.serialize(stream);
 
-    webview->PostWebMessageAsJson(stream.str().c_str());
+    return webview->PostWebMessageAsJson(stream.str().c_str());
 }

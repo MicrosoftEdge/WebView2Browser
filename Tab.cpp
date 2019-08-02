@@ -36,7 +36,7 @@ void Tab::Init(IWebView2Environment* env, bool shouldBeActive)
         THROW_IF_FAILED(m_contentWebview->add_DocumentStateChanged(Callback<IWebView2DocumentStateChangedEventHandler>(
             [this, browserWindow](IWebView2WebView* webview, IWebView2DocumentStateChangedEventArgs* args) -> HRESULT
         {
-            browserWindow->HandleTabURIUpdate(m_tabId, webview);
+            BrowserWindow::CheckFailure(browserWindow->HandleTabURIUpdate(m_tabId, webview), L"Can't update address bar");
 
             return S_OK;
         }).Get(), &m_uriUpdateForwarderToken));
@@ -44,7 +44,7 @@ void Tab::Init(IWebView2Environment* env, bool shouldBeActive)
         THROW_IF_FAILED(m_contentWebview->add_NavigationStarting(Callback<IWebView2NavigationStartingEventHandler>(
             [this, browserWindow](IWebView2WebView* webview, IWebView2NavigationStartingEventArgs* args) -> HRESULT
         {
-            browserWindow->HandleTabNavStarting(m_tabId, webview);
+            BrowserWindow::CheckFailure(browserWindow->HandleTabNavStarting(m_tabId, webview), L"Can't update reload button");
 
             return S_OK;
         }).Get(), &m_navStartingToken));
@@ -52,7 +52,7 @@ void Tab::Init(IWebView2Environment* env, bool shouldBeActive)
         THROW_IF_FAILED(m_contentWebview->add_NavigationCompleted(Callback<IWebView2NavigationCompletedEventHandler>(
             [this, browserWindow](IWebView2WebView* webview, IWebView2NavigationCompletedEventArgs* args) -> HRESULT
         {
-            browserWindow->HandleTabNavCompleted(m_tabId, webview, args);
+            CheckFailure(browserWindow->HandleTabNavCompleted(m_tabId, webview, args), L"Can't udpate reload button");
             return S_OK;
         }).Get(), &m_navCompletedToken));
 
@@ -63,7 +63,7 @@ void Tab::Init(IWebView2Environment* env, bool shouldBeActive)
         THROW_IF_FAILED(m_contentWebview->add_DevToolsProtocolEventReceived(L"Security.securityStateChanged", Callback<IWebView2DevToolsProtocolEventReceivedEventHandler>(
             [this, browserWindow](IWebView2WebView* webview, IWebView2DevToolsProtocolEventReceivedEventArgs* args) -> HRESULT
         {
-            browserWindow->HandleTabSecurityUpdate(m_tabId, webview, args);
+            CheckFailure(browserWindow->HandleTabSecurityUpdate(m_tabId, webview, args), L"Can't udpate security icon");
             return S_OK;
         }).Get(), &m_securityUpdateToken));
 

@@ -21,14 +21,14 @@ public:
     static BOOL LaunchWindow(_In_ HINSTANCE hInstance, _In_ int nCmdShow);
     static std::wstring GetAppDataDirectory();
     std::wstring GetFullPathFor(LPCWSTR relativePath);
-    void HandleTabURIUpdate(size_t tabId, IWebView2WebView* webview);
-    void HandleTabNavStarting(size_t tabId, IWebView2WebView* webview);
-    void HandleTabNavCompleted(size_t tabId, IWebView2WebView* webview, IWebView2NavigationCompletedEventArgs* args);
-    void HandleTabSecurityUpdate(size_t tabId, IWebView2WebView* webview, IWebView2DevToolsProtocolEventReceivedEventArgs* args);
+    HRESULT HandleTabURIUpdate(size_t tabId, IWebView2WebView* webview);
+    HRESULT HandleTabNavStarting(size_t tabId, IWebView2WebView* webview);
+    HRESULT HandleTabNavCompleted(size_t tabId, IWebView2WebView* webview, IWebView2NavigationCompletedEventArgs* args);
+    HRESULT HandleTabSecurityUpdate(size_t tabId, IWebView2WebView* webview, IWebView2DevToolsProtocolEventReceivedEventArgs* args);
     void HandleTabCreated(size_t tabId, bool shouldBeActive);
     void HandleTabMessageReceived(size_t tabId, IWebView2WebView* webview, IWebView2WebMessageReceivedEventArgs* eventArgs);
     int GetDPIAwareBound(int bound);
-    void CheckFailure(HRESULT hr);
+    static void CheckFailure(HRESULT hr, LPCWSTR errorMessage);
 protected:
     HINSTANCE m_hInst = nullptr;  // current app instance
     HWND m_hWnd = nullptr;
@@ -61,9 +61,9 @@ protected:
     HRESULT ClearControlsCookies();
 
     void SetUIMessageBroker();
-    void ResizeUIWebViews();
+    HRESULT ResizeUIWebViews();
     void UpdateMinWindowSize();
-    void PostJsonToWebView(web::json::value jsonObj, IWebView2WebView* webview);
+    HRESULT PostJsonToWebView(web::json::value jsonObj, IWebView2WebView* webview);
     void SwitchToTab(size_t tabId);
     std::wstring GetFilePathAsURI(std::wstring fullPath);
 };
