@@ -314,7 +314,7 @@ void BrowserWindow::SetUIMessageBroker()
         [this](IWebView2WebView* webview, IWebView2WebMessageReceivedEventArgs* eventArgs) -> HRESULT
     {
         wil::unique_cotaskmem_string jsonString;
-        eventArgs->get_WebMessageAsJson(&jsonString);  // Get the message from the UI WebView as JSON formatted string
+        CheckFailure(eventArgs->get_WebMessageAsJson(&jsonString), L"");  // Get the message from the UI WebView as JSON formatted string
         web::json::value jsonObj = web::json::value::parse(jsonString.get());
 
         if (!jsonObj.has_field(L"message"))
@@ -369,7 +369,7 @@ void BrowserWindow::SetUIMessageBroker()
                     filePath.append(path);
                     filePath.append(L".html");
                     std::wstring fullPath = GetFullPathFor(filePath.c_str());
-                    THROW_IF_FAILED(m_tabs.at(m_activeTabId)->m_contentWebview->Navigate(fullPath.c_str()));
+                    CheckFailure(m_tabs.at(m_activeTabId)->m_contentWebview->Navigate(fullPath.c_str()), L"Can't navigate to browser page.");
                 }
                 else
                 {
@@ -378,28 +378,28 @@ void BrowserWindow::SetUIMessageBroker()
             }
             else if (!SUCCEEDED(m_tabs.at(m_activeTabId)->m_contentWebview->Navigate(uri.c_str())))
             {
-                THROW_IF_FAILED(m_tabs.at(m_activeTabId)->m_contentWebview->Navigate(args.at(L"encodedSearchURI").as_string().c_str()));
+                CheckFailure(m_tabs.at(m_activeTabId)->m_contentWebview->Navigate(args.at(L"encodedSearchURI").as_string().c_str()), L"Can't navigate to requested page.");
             }
         }
         break;
         case MG_GO_FORWARD:
         {
-            THROW_IF_FAILED(m_tabs.at(m_activeTabId)->m_contentWebview->GoForward());
+            CheckFailure(m_tabs.at(m_activeTabId)->m_contentWebview->GoForward(), L"");
         }
         break;
         case MG_GO_BACK:
         {
-            THROW_IF_FAILED(m_tabs.at(m_activeTabId)->m_contentWebview->GoBack());
+            CheckFailure(m_tabs.at(m_activeTabId)->m_contentWebview->GoBack(), L"");
         }
         break;
         case MG_RELOAD:
         {
-            THROW_IF_FAILED(m_tabs.at(m_activeTabId)->m_contentWebview->Reload());
+            CheckFailure(m_tabs.at(m_activeTabId)->m_contentWebview->Reload(), L"");
         }
         break;
         case MG_CANCEL:
         {
-            THROW_IF_FAILED(m_tabs.at(m_activeTabId)->m_contentWebview->CallDevToolsProtocolMethod(L"Page.stopLoading", L"{}", nullptr));
+            CheckFailure(m_tabs.at(m_activeTabId)->m_contentWebview->CallDevToolsProtocolMethod(L"Page.stopLoading", L"{}", nullptr), L"");
         }
         break;
         case MG_SWITCH_TAB:
@@ -423,18 +423,18 @@ void BrowserWindow::SetUIMessageBroker()
         break;
         case MG_SHOW_OPTIONS:
         {
-            THROW_IF_FAILED(m_optionsWebView->put_IsVisible(TRUE));
-            THROW_IF_FAILED(m_optionsWebView->MoveFocus(WEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC));
+            CheckFailure(m_optionsWebView->put_IsVisible(TRUE), L"");
+            m_optionsWebView->MoveFocus(WEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC);
         }
         break;
         case MG_HIDE_OPTIONS:
         {
-            THROW_IF_FAILED(m_optionsWebView->put_IsVisible(FALSE));
+            CheckFailure(m_optionsWebView->put_IsVisible(FALSE), L"Something went wrong when trying to close the options dropdown.");
         }
         break;
         case MG_OPTION_SELECTED:
         {
-            THROW_IF_FAILED(m_tabs.at(m_activeTabId)->m_contentWebview->MoveFocus(WEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC));
+            m_tabs.at(m_activeTabId)->m_contentWebview->MoveFocus(WEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC);
         }
         break;
         case MG_GET_FAVORITES:
@@ -459,18 +459,20 @@ void BrowserWindow::SetUIMessageBroker()
     });
 }
 
-void BrowserWindow::SwitchToTab(size_t tabId)
+HRESULT BrowserWindow::SwitchToTab(size_t tabId)
 {
     size_t previousActiveTab = m_activeTabId;
 
+    RETURN_IF_FAILED(m_tabs.at(tabId)->ResizeWebView());
+    RETURN_IF_FAILED(m_tabs.at(tabId)->m_contentWebview->put_IsVisible(TRUE));
     m_activeTabId = tabId;
-    m_tabs.at(tabId)->ResizeWebView();
-    THROW_IF_FAILED(m_tabs.at(tabId)->m_contentWebview->put_IsVisible(TRUE));
 
     if (previousActiveTab != INVALID_TAB_ID && previousActiveTab != m_activeTabId)
     {
-        THROW_IF_FAILED(m_tabs.at(previousActiveTab)->m_contentWebview->put_IsVisible(FALSE));
+        RETURN_IF_FAILED(m_tabs.at(previousActiveTab)->m_contentWebview->put_IsVisible(FALSE));
     }
+
+    return S_OK;
 }
 
 HRESULT BrowserWindow::HandleTabURIUpdate(size_t tabId, IWebView2WebView* webview)
@@ -629,7 +631,7 @@ HRESULT BrowserWindow::HandleTabNavCompleted(size_t tabId, IWebView2WebView* web
 HRESULT BrowserWindow::HandleTabSecurityUpdate(size_t tabId, IWebView2WebView* webview, IWebView2DevToolsProtocolEventReceivedEventArgs* args)
 {
     wil::unique_cotaskmem_string jsonArgs;
-    args->get_ParameterObjectAsJson(&jsonArgs);
+    RETURN_IF_FAILED(args->get_ParameterObjectAsJson(&jsonArgs));
     web::json::value securityEvent = web::json::value::parse(jsonArgs.get());
 
     web::json::value jsonObj = web::json::value::parse(L"{}");
@@ -645,24 +647,24 @@ void BrowserWindow::HandleTabCreated(size_t tabId, bool shouldBeActive)
 {
     if (shouldBeActive)
     {
-        SwitchToTab(tabId);
+        CheckFailure(SwitchToTab(tabId), L"");
     }
 }
 
-void BrowserWindow::HandleTabMessageReceived(size_t tabId, IWebView2WebView* webview, IWebView2WebMessageReceivedEventArgs* eventArgs)
+HRESULT BrowserWindow::HandleTabMessageReceived(size_t tabId, IWebView2WebView* webview, IWebView2WebMessageReceivedEventArgs* eventArgs)
 {
     wil::unique_cotaskmem_string jsonString;
-    THROW_IF_FAILED(eventArgs->get_WebMessageAsJson(&jsonString));
+    RETURN_IF_FAILED(eventArgs->get_WebMessageAsJson(&jsonString));
     web::json::value jsonObj = web::json::value::parse(jsonString.get());
 
     wil::unique_cotaskmem_string uri;
-    THROW_IF_FAILED(webview->get_Source(&uri));
+    RETURN_IF_FAILED(webview->get_Source(&uri));
 
     int message = jsonObj.at(L"message").as_integer();
     web::json::value args = jsonObj.at(L"args");
 
     wil::unique_cotaskmem_string source;
-    THROW_IF_FAILED(webview->get_Source(&source));
+    RETURN_IF_FAILED(webview->get_Source(&source));
 
     switch (message)
     {
@@ -674,7 +676,7 @@ void BrowserWindow::HandleTabMessageReceived(size_t tabId, IWebView2WebView* web
         if (fileURI.compare(source.get()) == 0)
         {
             jsonObj[L"args"][L"tabId"] = web::json::value::number(tabId);
-            CheckFailure(PostJsonToWebView(jsonObj, m_controlsWebView.Get()), L"Couldn't perform favorite.");
+            CheckFailure(PostJsonToWebView(jsonObj, m_controlsWebView.Get()), L"Couldn't perform favorites operation.");
         }
     }
     break;
@@ -755,6 +757,8 @@ void BrowserWindow::HandleTabMessageReceived(size_t tabId, IWebView2WebView* web
     }
     break;
     }
+
+    return S_OK;
 }
 
 HRESULT BrowserWindow::ClearContentCache()

@@ -12,7 +12,7 @@ public:
     Microsoft::WRL::ComPtr<IWebView2WebView> m_contentWebview;
 
     static std::unique_ptr<Tab> CreateNewTab(HWND hWnd, IWebView2Environment* env, size_t id, bool shouldBeActive);
-    void ResizeWebView();
+    HRESULT ResizeWebView();
 protected:
     HWND m_parentHWnd = nullptr;
     size_t m_tabId = INVALID_TAB_ID;
@@ -23,6 +23,6 @@ protected:
     EventRegistrationToken m_messageBrokerToken = {};  // Message broker for browser pages loaded in a tab
     Microsoft::WRL::ComPtr<IWebView2WebMessageReceivedEventHandler> m_messageBroker;
 
-    void Init(IWebView2Environment* env, bool shouldBeActive);
+    HRESULT Init(IWebView2Environment* env, bool shouldBeActive);
     void SetMessageBroker();
 };

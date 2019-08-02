@@ -26,7 +26,7 @@ public:
     HRESULT HandleTabNavCompleted(size_t tabId, IWebView2WebView* webview, IWebView2NavigationCompletedEventArgs* args);
     HRESULT HandleTabSecurityUpdate(size_t tabId, IWebView2WebView* webview, IWebView2DevToolsProtocolEventReceivedEventArgs* args);
     void HandleTabCreated(size_t tabId, bool shouldBeActive);
-    void HandleTabMessageReceived(size_t tabId, IWebView2WebView* webview, IWebView2WebMessageReceivedEventArgs* eventArgs);
+    HRESULT HandleTabMessageReceived(size_t tabId, IWebView2WebView* webview, IWebView2WebMessageReceivedEventArgs* eventArgs);
     int GetDPIAwareBound(int bound);
     static void CheckFailure(HRESULT hr, LPCWSTR errorMessage);
 protected:
@@ -64,6 +64,6 @@ protected:
     HRESULT ResizeUIWebViews();
     void UpdateMinWindowSize();
     HRESULT PostJsonToWebView(web::json::value jsonObj, IWebView2WebView* webview);
-    void SwitchToTab(size_t tabId);
+    HRESULT SwitchToTab(size_t tabId);
     std::wstring GetFilePathAsURI(std::wstring fullPath);
 };
