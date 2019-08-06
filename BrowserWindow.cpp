@@ -813,12 +813,11 @@ HRESULT BrowserWindow::ResizeUIWebViews()
 
     if (m_optionsWebView != nullptr)
     {
-        // TO DO: remove hacky offsets once put_Bounds is fixed
         RECT bounds;
         GetClientRect(m_hWnd, &bounds);
-        bounds.top = GetDPIAwareBound(c_uiBarHeight) / 2;
+        bounds.top = GetDPIAwareBound(c_uiBarHeight);
         bounds.bottom = bounds.top + GetDPIAwareBound(c_optionsDropdownHeight);
-        bounds.left = (bounds.right - GetDPIAwareBound(c_optionsDropdownWidth)) / 2;
+        bounds.left = bounds.right - GetDPIAwareBound(c_optionsDropdownWidth);
 
         RETURN_IF_FAILED(m_optionsWebView->put_Bounds(bounds));
     }

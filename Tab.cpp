@@ -91,10 +91,8 @@ HRESULT Tab::ResizeWebView()
     RECT bounds;
     GetClientRect(m_parentHWnd, &bounds);
 
-    // TO DO: remove hacky offset once put_Bounds is fixed
     BrowserWindow* browserWindow = reinterpret_cast<BrowserWindow*>(GetWindowLongPtr(m_parentHWnd, GWLP_USERDATA));
-    bounds.top += browserWindow->GetDPIAwareBound(BrowserWindow::c_uiBarHeight) / 2;
-    bounds.bottom -= bounds.top;
+    bounds.top += browserWindow->GetDPIAwareBound(BrowserWindow::c_uiBarHeight);
 
     return m_contentWebView->put_Bounds(bounds);
 }
