@@ -341,7 +341,7 @@ void BrowserWindow::SetUIMessageBroker()
 
         if (!jsonObj.has_field(L"args"))
         {
-            OutputDebugString(L"The mesage has no args field\n");
+            OutputDebugString(L"The message has no args field\n");
             return S_OK;
         }
 
