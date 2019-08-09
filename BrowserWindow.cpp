@@ -822,6 +822,14 @@ HRESULT BrowserWindow::ResizeUIWebViews()
         RETURN_IF_FAILED(m_optionsWebView->put_Bounds(bounds));
     }
 
+    // Workaround for black controls WebView issue in Windows 7
+    HWND wvWindow = GetWindow(m_hWnd, GW_CHILD);
+    while (wvWindow != nullptr)
+    {
+        UpdateWindow(wvWindow);
+        wvWindow = GetWindow(wvWindow, GW_HWNDNEXT);
+    }
+
     return S_OK;
 }
 
