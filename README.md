@@ -18,6 +18,7 @@ Clone the repository and open the solution in Visual Studio. WebView2 is already
 
 - Clone this repository
 - Open the solution in Visual Studio 2019**
+- Make the changes listed below if you're using a Windows version below Windows 10.
 - Set the target you want to build (Debug/Release, x86/x64)
 - Build the solution
 
@@ -26,6 +27,39 @@ That's it. Everything should be ready to just launch the app.
 *You can get the WebView2 NugetPackage through the Visual Studio NuGet Package Manager.
 <br />
 **You can also use Visual Studio 2017 by changing the project's Platform Toolset in Project Properties/Configuration properties/General/Platform Toolset. You might also need to change the Windows SDK to the latest version available to you.
+
+## Using versions below Windows 10
+There's a couple of changes you need to make if you want to build and run the browser in other versions of Windows. This is because of how DPI is handled in Windows 10 vs previous versions of Windows.
+
+In `WebViewBrowserApp.cpp`, you will need to replace the call to `SetProcessDpiAwarenessContext` and call `SetProcessDPIAware` instead.
+```cpp
+int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
+                      _In_opt_ HINSTANCE hPrevInstance,
+                      _In_ LPWSTR    lpCmdLine,
+                      _In_ int       nCmdShow)
+{
+    UNREFERENCED_PARAMETER(hPrevInstance);
+    UNREFERENCED_PARAMETER(lpCmdLine);
+
+    // Call SetProcessDPIAware() instead when using Windows 7 or any version
+    // below 1703 (Windows 10).
+    SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+
+    BrowserWindow::RegisterClass(hInstance);
+
+    // ...
+```
+
+In `WebViewBrowser.cpp`, you will need to remove the call to `GetDpiForWindow`.
+```cpp
+int BrowserWindow::GetDPIAwareBound(int bound)
+{
+    // Remove the GetDpiForWindow call when using Windows 7 or any version
+    // below 1607 (Windows 10). You will also have to make sure the build
+    // directory is clean before building again.
+    return (bound * GetDpiForWindow(m_hWnd) / DEFAULT_DPI);
+}
+```
 
 ## Browser layout
 WebView2Browser has a multi-WebView approach to integrate web content and application UI into a Windows Desktop application. This allows the browser to use standard web technologies (HTML, CSS, JavaScript) to light up the interface but also enables the app to fetch favicons from the web and use IndexedDB for storing favorites and history.

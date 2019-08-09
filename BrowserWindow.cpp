@@ -860,6 +860,9 @@ void BrowserWindow::CheckFailure(HRESULT hr, LPCWSTR errorMessage)
 
 int BrowserWindow::GetDPIAwareBound(int bound)
 {
+    // Remove the GetDpiForWindow call when using Windows 7 or any version
+    // below 1607 (Windows 10). You will also have to make sure the build
+    // directory is clean before building again.
     return (bound * GetDpiForWindow(m_hWnd) / DEFAULT_DPI);
 }
 
