@@ -186,7 +186,7 @@ BOOL BrowserWindow::InitInstance(HINSTANCE hInstance, int nCmdShow)
     // tabs will be created from this environment and kept isolated from the
     // browser UI. This enviroment is created first so the UI can request new
     // tabs when it's ready.
-    HRESULT hr = CreateWebView2EnvironmentWithDetails(nullptr, userDataDirectory.c_str(), WEBVIEW2_RELEASE_CHANNEL_PREFERENCE_STABLE,
+    HRESULT hr = CreateWebView2EnvironmentWithDetails(nullptr, userDataDirectory.c_str(),
         L"", Callback<IWebView2CreateWebView2EnvironmentCompletedHandler>(
             [this](HRESULT result, IWebView2Environment* env) -> HRESULT
     {
@@ -220,7 +220,7 @@ HRESULT BrowserWindow::InitUIWebViews()
 
     // Create WebView environment for browser UI. A separate data directory is
     // used to isolate the browser UI from web content requested by the user.
-    return CreateWebView2EnvironmentWithDetails(nullptr, browserDataDirectory.c_str(), WEBVIEW2_RELEASE_CHANNEL_PREFERENCE_STABLE,
+    return CreateWebView2EnvironmentWithDetails(nullptr, browserDataDirectory.c_str(),
         L"", Callback<IWebView2CreateWebView2EnvironmentCompletedHandler>(
             [this](HRESULT result, IWebView2Environment* env) -> HRESULT
     {
