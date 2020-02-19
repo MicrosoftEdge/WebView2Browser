@@ -186,9 +186,9 @@ BOOL BrowserWindow::InitInstance(HINSTANCE hInstance, int nCmdShow)
     // tabs will be created from this environment and kept isolated from the
     // browser UI. This enviroment is created first so the UI can request new
     // tabs when it's ready.
-    HRESULT hr = CreateWebView2EnvironmentWithDetails(nullptr, userDataDirectory.c_str(),
-        L"", Callback<IWebView2CreateWebView2EnvironmentCompletedHandler>(
-            [this](HRESULT result, IWebView2Environment* env) -> HRESULT
+    HRESULT hr = CreateCoreWebView2EnvironmentWithDetails(nullptr, userDataDirectory.c_str(),
+        L"", Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
+            [this](HRESULT result, ICoreWebView2Environment* env) -> HRESULT
     {
         RETURN_IF_FAILED(result);
 
@@ -220,9 +220,9 @@ HRESULT BrowserWindow::InitUIWebViews()
 
     // Create WebView environment for browser UI. A separate data directory is
     // used to isolate the browser UI from web content requested by the user.
-    return CreateWebView2EnvironmentWithDetails(nullptr, browserDataDirectory.c_str(),
-        L"", Callback<IWebView2CreateWebView2EnvironmentCompletedHandler>(
-            [this](HRESULT result, IWebView2Environment* env) -> HRESULT
+    return CreateCoreWebView2EnvironmentWithDetails(nullptr, browserDataDirectory.c_str(),
+        L"", Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
+            [this](HRESULT result, ICoreWebView2Environment* env) -> HRESULT
     {
         // Environment is ready, create the WebView
         m_uiEnv = env;
@@ -236,8 +236,8 @@ HRESULT BrowserWindow::InitUIWebViews()
 
 HRESULT BrowserWindow::CreateBrowserControlsWebView()
 {
-    return m_uiEnv->CreateWebView(m_hWnd, Callback<IWebView2CreateWebViewCompletedHandler>(
-        [this](HRESULT result, IWebView2WebView* webview) -> HRESULT
+    return m_uiEnv->CreateCoreWebView2Host(m_hWnd, Callback<ICoreWebView2CreateCoreWebView2HostCompletedHandler>(
+        [this](HRESULT result, ICoreWebView2Host* host) -> HRESULT
     {
         if (!SUCCEEDED(result))
         {
@@ -245,17 +245,17 @@ HRESULT BrowserWindow::CreateBrowserControlsWebView()
             return result;
         }
         // WebView created
-        m_controlsWebView = webview;
+        m_controlsHost = host;
+        CheckFailure(m_controlsHost->get_CoreWebView2(&m_controlsWebView), L"");
 
-        wil::com_ptr<IWebView2Settings> settings;
+        wil::com_ptr<ICoreWebView2Settings> settings;
         RETURN_IF_FAILED(m_controlsWebView->get_Settings(&settings));
         RETURN_IF_FAILED(settings->put_AreDevToolsEnabled(FALSE));
-        RETURN_IF_FAILED(settings->put_IsFullscreenAllowed(FALSE));
 
-        RETURN_IF_FAILED(m_controlsWebView->add_ZoomFactorChanged(Callback<IWebView2ZoomFactorChangedEventHandler>(
-            [](IWebView2WebView* webview, IUnknown* args) -> HRESULT
+        RETURN_IF_FAILED(m_controlsHost->add_ZoomFactorChanged(Callback<ICoreWebView2ZoomFactorChangedEventHandler>(
+            [](ICoreWebView2Host* host, IUnknown* args) -> HRESULT
         {
-            webview->put_ZoomFactor(1.0);
+            host->put_ZoomFactor(1.0);
             return S_OK;
         }
         ).Get(), &m_controlsZoomToken));
@@ -272,8 +272,8 @@ HRESULT BrowserWindow::CreateBrowserControlsWebView()
 
 HRESULT BrowserWindow::CreateBrowserOptionsWebView()
 {
-    return m_uiEnv->CreateWebView(m_hWnd, Callback<IWebView2CreateWebViewCompletedHandler>(
-        [this](HRESULT result, IWebView2WebView* webview) -> HRESULT
+    return m_uiEnv->CreateCoreWebView2Host(m_hWnd, Callback<ICoreWebView2CreateCoreWebView2HostCompletedHandler>(
+        [this](HRESULT result, ICoreWebView2Host* host) -> HRESULT
     {
         if (!SUCCEEDED(result))
         {
@@ -281,28 +281,28 @@ HRESULT BrowserWindow::CreateBrowserOptionsWebView()
             return result;
         }
         // WebView created
-        m_optionsWebView = webview;
+        m_optionsHost = host;
+        CheckFailure(m_optionsHost->get_CoreWebView2(&m_optionsWebView), L"");
 
-        wil::com_ptr<IWebView2Settings> settings;
+        wil::com_ptr<ICoreWebView2Settings> settings;
         RETURN_IF_FAILED(m_optionsWebView->get_Settings(&settings));
         RETURN_IF_FAILED(settings->put_AreDevToolsEnabled(FALSE));
-        RETURN_IF_FAILED(settings->put_IsFullscreenAllowed(FALSE));
 
-        RETURN_IF_FAILED(m_optionsWebView->add_ZoomFactorChanged(Callback<IWebView2ZoomFactorChangedEventHandler>(
-            [](IWebView2WebView* webview, IUnknown* args) -> HRESULT
+        RETURN_IF_FAILED(m_optionsHost->add_ZoomFactorChanged(Callback<ICoreWebView2ZoomFactorChangedEventHandler>(
+            [](ICoreWebView2Host* host, IUnknown* args) -> HRESULT
         {
-            webview->put_ZoomFactor(1.0);
+            host->put_ZoomFactor(1.0);
             return S_OK;
         }
         ).Get(), &m_optionsZoomToken));
 
         // Hide by default
-        RETURN_IF_FAILED(m_optionsWebView->put_IsVisible(FALSE));
+        RETURN_IF_FAILED(m_optionsHost->put_IsVisible(FALSE));
         RETURN_IF_FAILED(m_optionsWebView->add_WebMessageReceived(m_uiMessageBroker.Get(), &m_optionsUIMessageBrokerToken));
 
         // Hide menu when focus is lost
-        RETURN_IF_FAILED(m_optionsWebView->add_LostFocus(Callback<IWebView2FocusChangedEventHandler>(
-            [this](IWebView2WebView* sender, IUnknown* args) -> HRESULT
+        RETURN_IF_FAILED(m_optionsHost->add_LostFocus(Callback<ICoreWebView2FocusChangedEventHandler>(
+            [this](ICoreWebView2Host* sender, IUnknown* args) -> HRESULT
         {
             web::json::value jsonObj = web::json::value::parse(L"{}");
             jsonObj[L"message"] = web::json::value(MG_OPTIONS_LOST_FOCUS);
@@ -326,8 +326,8 @@ HRESULT BrowserWindow::CreateBrowserOptionsWebView()
 // Lambda is used to capture the instance while satisfying Microsoft::WRL::Callback<T>()
 void BrowserWindow::SetUIMessageBroker()
 {
-    m_uiMessageBroker = Callback<IWebView2WebMessageReceivedEventHandler>(
-        [this](IWebView2WebView* webview, IWebView2WebMessageReceivedEventArgs* eventArgs) -> HRESULT
+    m_uiMessageBroker = Callback<ICoreWebView2WebMessageReceivedEventHandler>(
+        [this](ICoreWebView2* webview, ICoreWebView2WebMessageReceivedEventArgs* eventArgs) -> HRESULT
     {
         wil::unique_cotaskmem_string jsonString;
         CheckFailure(eventArgs->get_WebMessageAsJson(&jsonString), L"");  // Get the message from the UI WebView as JSON formatted string
@@ -363,7 +363,7 @@ void BrowserWindow::SetUIMessageBroker()
             }
             else
             {
-                m_tabs.at(id)->m_contentWebView->Close();
+                m_tabs.at(id)->m_contentHost->Close();
                 it->second = std::move(newTab);
             }
         }
@@ -428,7 +428,7 @@ void BrowserWindow::SetUIMessageBroker()
         case MG_CLOSE_TAB:
         {
             size_t id = args.at(L"tabId").as_number().to_uint32();
-            m_tabs.at(id)->m_contentWebView->Close();
+            m_tabs.at(id)->m_contentHost->Close();
             m_tabs.erase(id);
         }
         break;
@@ -439,18 +439,18 @@ void BrowserWindow::SetUIMessageBroker()
         break;
         case MG_SHOW_OPTIONS:
         {
-            CheckFailure(m_optionsWebView->put_IsVisible(TRUE), L"");
-            m_optionsWebView->MoveFocus(WEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC);
+            CheckFailure(m_optionsHost->put_IsVisible(TRUE), L"");
+            m_optionsHost->MoveFocus(CORE_WEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC);
         }
         break;
         case MG_HIDE_OPTIONS:
         {
-            CheckFailure(m_optionsWebView->put_IsVisible(FALSE), L"Something went wrong when trying to close the options dropdown.");
+            CheckFailure(m_optionsHost->put_IsVisible(FALSE), L"Something went wrong when trying to close the options dropdown.");
         }
         break;
         case MG_OPTION_SELECTED:
         {
-            m_tabs.at(m_activeTabId)->m_contentWebView->MoveFocus(WEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC);
+            m_tabs.at(m_activeTabId)->m_contentHost->MoveFocus(CORE_WEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC);
         }
         break;
         case MG_GET_FAVORITES:
@@ -480,18 +480,18 @@ HRESULT BrowserWindow::SwitchToTab(size_t tabId)
     size_t previousActiveTab = m_activeTabId;
 
     RETURN_IF_FAILED(m_tabs.at(tabId)->ResizeWebView());
-    RETURN_IF_FAILED(m_tabs.at(tabId)->m_contentWebView->put_IsVisible(TRUE));
+    RETURN_IF_FAILED(m_tabs.at(tabId)->m_contentHost->put_IsVisible(TRUE));
     m_activeTabId = tabId;
 
     if (previousActiveTab != INVALID_TAB_ID && previousActiveTab != m_activeTabId)
     {
-        RETURN_IF_FAILED(m_tabs.at(previousActiveTab)->m_contentWebView->put_IsVisible(FALSE));
+        RETURN_IF_FAILED(m_tabs.at(previousActiveTab)->m_contentHost->put_IsVisible(FALSE));
     }
 
     return S_OK;
 }
 
-HRESULT BrowserWindow::HandleTabURIUpdate(size_t tabId, IWebView2WebView* webview)
+HRESULT BrowserWindow::HandleTabURIUpdate(size_t tabId, ICoreWebView2* webview)
 {
     wil::unique_cotaskmem_string source;
     RETURN_IF_FAILED(webview->get_Source(&source));
@@ -520,6 +520,22 @@ HRESULT BrowserWindow::HandleTabURIUpdate(size_t tabId, IWebView2WebView* webvie
         jsonObj[L"args"][L"uriToShow"] = web::json::value(L"browser://history");
     }
 
+    RETURN_IF_FAILED(PostJsonToWebView(jsonObj, m_controlsWebView.Get()));
+
+    return S_OK;
+}
+
+HRESULT BrowserWindow::HandleTabHistoryUpdate(size_t tabId, ICoreWebView2* webview)
+{
+    wil::unique_cotaskmem_string source;
+    RETURN_IF_FAILED(webview->get_Source(&source));
+    
+    web::json::value jsonObj = web::json::value::parse(L"{}");
+    jsonObj[L"message"] = web::json::value(MG_UPDATE_URI);
+    jsonObj[L"args"] = web::json::value::parse(L"{}");
+    jsonObj[L"args"][L"tabId"] = web::json::value::number(tabId);
+    jsonObj[L"args"][L"uri"] = web::json::value(source.get());
+
     BOOL canGoForward = FALSE;
     RETURN_IF_FAILED(webview->get_CanGoForward(&canGoForward));
     jsonObj[L"args"][L"canGoForward"] = web::json::value::boolean(canGoForward);
@@ -533,7 +549,7 @@ HRESULT BrowserWindow::HandleTabURIUpdate(size_t tabId, IWebView2WebView* webvie
     return S_OK;
 }
 
-HRESULT BrowserWindow::HandleTabNavStarting(size_t tabId, IWebView2WebView* webview)
+HRESULT BrowserWindow::HandleTabNavStarting(size_t tabId, ICoreWebView2* webview)
 {
     web::json::value jsonObj = web::json::value::parse(L"{}");
     jsonObj[L"message"] = web::json::value(MG_NAV_STARTING);
@@ -543,7 +559,7 @@ HRESULT BrowserWindow::HandleTabNavStarting(size_t tabId, IWebView2WebView* webv
     return PostJsonToWebView(jsonObj, m_controlsWebView.Get());
 }
 
-HRESULT BrowserWindow::HandleTabNavCompleted(size_t tabId, IWebView2WebView* webview, IWebView2NavigationCompletedEventArgs* args)
+HRESULT BrowserWindow::HandleTabNavCompleted(size_t tabId, ICoreWebView2* webview, ICoreWebView2NavigationCompletedEventArgs* args)
 {
     std::wstring getTitleScript(
         // Look for a title tag
@@ -602,7 +618,7 @@ HRESULT BrowserWindow::HandleTabNavCompleted(size_t tabId, IWebView2WebView* web
         L"})();"
     );
 
-    CheckFailure(webview->ExecuteScript(getTitleScript.c_str(), Callback<IWebView2ExecuteScriptCompletedHandler>(
+    CheckFailure(webview->ExecuteScript(getTitleScript.c_str(), Callback<ICoreWebView2ExecuteScriptCompletedHandler>(
         [this, tabId](HRESULT error, PCWSTR result) -> HRESULT
     {
         RETURN_IF_FAILED(error);
@@ -617,7 +633,7 @@ HRESULT BrowserWindow::HandleTabNavCompleted(size_t tabId, IWebView2WebView* web
         return S_OK;
     }).Get()), L"Can't update title.");
 
-    CheckFailure(webview->ExecuteScript(getFaviconURI.c_str(), Callback<IWebView2ExecuteScriptCompletedHandler>(
+    CheckFailure(webview->ExecuteScript(getFaviconURI.c_str(), Callback<ICoreWebView2ExecuteScriptCompletedHandler>(
         [this, tabId](HRESULT error, PCWSTR result) -> HRESULT
     {
         RETURN_IF_FAILED(error);
@@ -646,7 +662,7 @@ HRESULT BrowserWindow::HandleTabNavCompleted(size_t tabId, IWebView2WebView* web
     return PostJsonToWebView(jsonObj, m_controlsWebView.Get());
 }
 
-HRESULT BrowserWindow::HandleTabSecurityUpdate(size_t tabId, IWebView2WebView* webview, IWebView2DevToolsProtocolEventReceivedEventArgs* args)
+HRESULT BrowserWindow::HandleTabSecurityUpdate(size_t tabId, ICoreWebView2* webview, ICoreWebView2DevToolsProtocolEventReceivedEventArgs* args)
 {
     wil::unique_cotaskmem_string jsonArgs;
     RETURN_IF_FAILED(args->get_ParameterObjectAsJson(&jsonArgs));
@@ -669,7 +685,7 @@ void BrowserWindow::HandleTabCreated(size_t tabId, bool shouldBeActive)
     }
 }
 
-HRESULT BrowserWindow::HandleTabMessageReceived(size_t tabId, IWebView2WebView* webview, IWebView2WebMessageReceivedEventArgs* eventArgs)
+HRESULT BrowserWindow::HandleTabMessageReceived(size_t tabId, ICoreWebView2* webview, ICoreWebView2WebMessageReceivedEventArgs* eventArgs)
 {
     wil::unique_cotaskmem_string jsonString;
     RETURN_IF_FAILED(eventArgs->get_WebMessageAsJson(&jsonString));
@@ -808,7 +824,7 @@ HRESULT BrowserWindow::ResizeUIWebViews()
         bounds.bottom = bounds.top + GetDPIAwareBound(c_uiBarHeight);
         bounds.bottom += 1;
 
-        RETURN_IF_FAILED(m_controlsWebView->put_Bounds(bounds));
+        RETURN_IF_FAILED(m_controlsHost->put_Bounds(bounds));
     }
 
     if (m_optionsWebView != nullptr)
@@ -819,7 +835,7 @@ HRESULT BrowserWindow::ResizeUIWebViews()
         bounds.bottom = bounds.top + GetDPIAwareBound(c_optionsDropdownHeight);
         bounds.left = bounds.right - GetDPIAwareBound(c_optionsDropdownWidth);
 
-        RETURN_IF_FAILED(m_optionsWebView->put_Bounds(bounds));
+        RETURN_IF_FAILED(m_optionsHost->put_Bounds(bounds));
     }
 
     // Workaround for black controls WebView issue in Windows 7
@@ -922,7 +938,7 @@ std::wstring BrowserWindow::GetFilePathAsURI(std::wstring fullPath)
     return fileURI;
 }
 
-HRESULT BrowserWindow::PostJsonToWebView(web::json::value jsonObj, IWebView2WebView* webview)
+HRESULT BrowserWindow::PostJsonToWebView(web::json::value jsonObj, ICoreWebView2* webview)
 {
     utility::stringstream_t stream;
     jsonObj.serialize(stream);

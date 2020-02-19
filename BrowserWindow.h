@@ -21,12 +21,13 @@ public:
     static BOOL LaunchWindow(_In_ HINSTANCE hInstance, _In_ int nCmdShow);
     static std::wstring GetAppDataDirectory();
     std::wstring GetFullPathFor(LPCWSTR relativePath);
-    HRESULT HandleTabURIUpdate(size_t tabId, IWebView2WebView* webview);
-    HRESULT HandleTabNavStarting(size_t tabId, IWebView2WebView* webview);
-    HRESULT HandleTabNavCompleted(size_t tabId, IWebView2WebView* webview, IWebView2NavigationCompletedEventArgs* args);
-    HRESULT HandleTabSecurityUpdate(size_t tabId, IWebView2WebView* webview, IWebView2DevToolsProtocolEventReceivedEventArgs* args);
+    HRESULT HandleTabURIUpdate(size_t tabId, ICoreWebView2* webview);
+    HRESULT HandleTabHistoryUpdate(size_t tabId, ICoreWebView2* webview);
+    HRESULT HandleTabNavStarting(size_t tabId, ICoreWebView2* webview);
+    HRESULT HandleTabNavCompleted(size_t tabId, ICoreWebView2* webview, ICoreWebView2NavigationCompletedEventArgs* args);
+    HRESULT HandleTabSecurityUpdate(size_t tabId, ICoreWebView2* webview, ICoreWebView2DevToolsProtocolEventReceivedEventArgs* args);
     void HandleTabCreated(size_t tabId, bool shouldBeActive);
-    HRESULT HandleTabMessageReceived(size_t tabId, IWebView2WebView* webview, IWebView2WebMessageReceivedEventArgs* eventArgs);
+    HRESULT HandleTabMessageReceived(size_t tabId, ICoreWebView2* webview, ICoreWebView2WebMessageReceivedEventArgs* eventArgs);
     int GetDPIAwareBound(int bound);
     static void CheckFailure(HRESULT hr, LPCWSTR errorMessage);
 protected:
@@ -39,10 +40,12 @@ protected:
     int m_minWindowWidth = 0;
     int m_minWindowHeight = 0;
 
-    Microsoft::WRL::ComPtr<IWebView2Environment> m_uiEnv;
-    Microsoft::WRL::ComPtr<IWebView2Environment> m_contentEnv;
-    Microsoft::WRL::ComPtr<IWebView2WebView> m_controlsWebView;
-    Microsoft::WRL::ComPtr<IWebView2WebView> m_optionsWebView;
+    Microsoft::WRL::ComPtr<ICoreWebView2Environment> m_uiEnv;
+    Microsoft::WRL::ComPtr<ICoreWebView2Environment> m_contentEnv;
+    Microsoft::WRL::ComPtr<ICoreWebView2Host> m_controlsHost;
+    Microsoft::WRL::ComPtr<ICoreWebView2Host> m_optionsHost;
+    Microsoft::WRL::ComPtr<ICoreWebView2> m_controlsWebView;
+    Microsoft::WRL::ComPtr<ICoreWebView2> m_optionsWebView;
     std::map<size_t,std::unique_ptr<Tab>> m_tabs;
     size_t m_activeTabId = 0;
 
@@ -51,7 +54,7 @@ protected:
     EventRegistrationToken m_optionsUIMessageBrokerToken = {};  // Token for the UI message handler in options WebView
     EventRegistrationToken m_optionsZoomToken = {};
     EventRegistrationToken m_lostOptionsFocus = {};  // Token for the lost focus handler in options WebView
-    Microsoft::WRL::ComPtr<IWebView2WebMessageReceivedEventHandler> m_uiMessageBroker;
+    Microsoft::WRL::ComPtr<ICoreWebView2WebMessageReceivedEventHandler> m_uiMessageBroker;
 
     BOOL InitInstance(HINSTANCE hInstance, int nCmdShow);
     HRESULT InitUIWebViews();
@@ -65,7 +68,7 @@ protected:
     void SetUIMessageBroker();
     HRESULT ResizeUIWebViews();
     void UpdateMinWindowSize();
-    HRESULT PostJsonToWebView(web::json::value jsonObj, IWebView2WebView* webview);
+    HRESULT PostJsonToWebView(web::json::value jsonObj, ICoreWebView2* webview);
     HRESULT SwitchToTab(size_t tabId);
     std::wstring GetFilePathAsURI(std::wstring fullPath);
 };
