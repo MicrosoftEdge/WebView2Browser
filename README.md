@@ -11,7 +11,7 @@ WebView2Browser shows some of the simplest uses of WebView2 -such as creating an
 - [Microsoft Edge (Chromium)](https://www.microsoftedgeinsider.com/download/) installed on a supported OS.
 - [Visual Studio](https://visualstudio.microsoft.com/vs/) with C++ support installed.
 
-The Edge Canary channel is recommended for the installation and the minimum version is 78.0.240.0.
+The Edge Canary channel is recommended for the installation and the minimum version is 82.0.430.0.
 
 ## Build the browser
 Clone the repository and open the solution in Visual Studio. WebView2 is already included as a NuGet package* in the project!
