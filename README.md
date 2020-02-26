@@ -1,17 +1,17 @@
 # WebView2Browser
-A web browser built with the [Microsoft Edge WebView2](https://docs.microsoft.com/en-us/microsoft-edge/hosting/webview2) control.
+A web browser built with the [Microsoft Edge WebView2](https://docs.microsoft.com/microsoft-edge/hosting/webview2) control.
 
-![WebView2Browser](https://github.com/MicrosoftEdge/WebView2Browser/raw/master/screenshots/WebView2Browser.png)
+![WebView2Browser](/screenshots/WebView2Browser.png)
 
 WebView2Browser is a sample Windows desktop application demonstrating the WebView2 control capabilities. It is built as a Win32 [Visual Studio 2019](https://visualstudio.microsoft.com/vs/) project and makes use of both C++ and JavaScript in the WebView2 environment to power its features.
 
-WebView2Browser shows some of the simplest uses of WebView2 -such as creating and navigating a WebView, but also some more complex workflows like using the [PostWebMessageAsJson API](https://docs.microsoft.com/en-us/microsoft-edge/hosting/webview2/reference/iwebview2webview#postwebmessageasjson) to communicate WebViews in separate environments. It is intended as a rich code sample to look at how you can use WebView2 APIs to build your own app.
+WebView2Browser shows some of the simplest uses of WebView2 -such as creating and navigating a WebView, but also some more complex workflows like using the [PostWebMessageAsJson API](https://docs.microsoft.com/microsoft-edge/hosting/webview2/reference/icorewebview2#postwebmessageasjson) to communicate WebViews in separate environments. It is intended as a rich code sample to look at how you can use WebView2 APIs to build your own app.
 
 ## Requisites
-- [Microsoft Edge (Chromium)](https://www.microsoftedgeinsider.com/en-us/download/) installed on a supported OS.
+- [Microsoft Edge (Chromium)](https://www.microsoftedgeinsider.com/download/) installed on a supported OS.
 - [Visual Studio](https://visualstudio.microsoft.com/vs/) with C++ support installed.
 
-The Edge Canary channel is recommended for the installation and the minimum version is 78.0.240.0.
+The Edge Canary channel is recommended for the installation and the minimum version is 82.0.430.0.
 
 ## Build the browser
 Clone the repository and open the solution in Visual Studio. WebView2 is already included as a NuGet package* in the project!
@@ -50,7 +50,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     // ...
 ```
 
-In `WebViewBrowser.cpp`, you will need to remove the call to `GetDpiForWindow`.
+In `BrowserWindow.cpp`, you will need to remove the call to `GetDpiForWindow`.
 ```cpp
 int BrowserWindow::GetDPIAwareBound(int bound)
 {
@@ -82,30 +82,38 @@ WebView2Browser provides all the functionalities to make a basic web browser, bu
 - Clearing cache and cookies
 
 ## WebView2 APIs
-WebView2Browser makes use of a handful of the APIs available in WebView2. For the APIs not used here, you can find more about them in the [Microsoft Edge WebView2 Reference](https://docs.microsoft.com/en-us/microsoft-edge/hosting/webview2/reference-webview2). The following is a list of the most interesting APIs WebView2Browser uses and the feature(s) they enable.
+WebView2Browser makes use of a handful of the APIs available in WebView2. For the APIs not used here, you can find more about them in the [Microsoft Edge WebView2 Reference](https://docs.microsoft.com/microsoft-edge/hosting/webview2/reference-webview2). The following is a list of the most interesting APIs WebView2Browser uses and the feature(s) they enable.
 
 API | Feature(s)
 :--- | :---
-CreateWebView2EnvironmentWithDetails | Used to create the environments for UI and content WebViews. Different user data directories are passed to isolate UI from web content. |
-IWebView2DevToolsProtocolEventReceivedEventHandler | Used along with add_DevToolsProtocolEventReceived to listen for CDP security events to update the lock icon in the browser UI. |
-IWebView2DocumentStateChangedEventHandler | Used along with add_DocumentStateChanged to udpate the address bar and navigation buttons in the browser UI. |
-IWebView2ExecuteScriptCompletedHandler | Used along with ExecuteScript to get the title and favicon from the visited page. |
-IWebView2FocusChangedEventHandler | Used along with add_LostFocus to hide the browser options dropdown when it loses focus.
-IWebView2NavigationCompletedEventHandler | Used along with add_NavigationCompleted to udpate the reload button in the browser UI.
-IWebView2Settings | Used to disable DevTools in the browser UI.
-IWebView2WebMessageReceivedEventHandler | This is one of the most important APIs to WebView2Browser. Most functionalities involving communication across WebViews use this.
-IWebView2WebView | There are several WebViews in WebView2Browser and most features make use of members in this interface, the table below shows how they're used.
+CreateCoreWebView2EnvironmentWithDetails | Used to create the environments for UI and content WebViews. Different user data directories are passed to isolate UI from web content. |
+ICoreWebView2 | There are several WebViews in WebView2Browser and most features make use of members in this interface, the table below shows how they're used.
+ICoreWebView2DevToolsProtocolEventReceivedEventHandler | Used along with add_DevToolsProtocolEventReceived to listen for CDP security events to update the lock icon in the browser UI. |
+ICoreWebView2DevToolsProtocolEventReceiver | Used along with add_DevToolsProtocolEventReceived to listen for CDP security events to update the lock icon in the browser UI. |
+ICoreWebView2ExecuteScriptCompletedHandler | Used along with ExecuteScript to get the title and favicon from the visited page. |
+ICoreWebView2FocusChangedEventHandler | Used along with add_LostFocus to hide the browser options dropdown when it loses focus.
+ICoreWebView2HistoryChangedEventHandler | Used along with add_HistoryChanged to udpate the navigation buttons in the browser UI. |
+ICoreWebView2Host | There are several WebViewHosts in WebView2Browser and we fetch the associated WebViews from them.
+ICoreWebView2NavigationCompletedEventHandler | Used along with add_NavigationCompleted to udpate the reload button in the browser UI.
+ICoreWebView2Settings | Used to disable DevTools in the browser UI.
+ICoreWebView2SourceChangedEventHandler | Used along with add_SourceChanged to udpate the address bar in the browser UI. |
+ICoreWebView2WebMessageReceivedEventHandler | This is one of the most important APIs to WebView2Browser. Most functionalities involving communication across WebViews use this.
 
-IWebView2WebView API | Feature(s)
+ICoreWebView2 API | Feature(s)
 :--- | :---
 add_NavigationStarting | Used to display the cancel navigation button in the controls WebView.
-add_DocumentStateChanged | Used to update the address bar and go back/forward buttons.
+add_SourceChanged | Used to update the address bar.
+add_HistoryChanged | Used to update go back/forward buttons.
 add_NavigationCompleted | Used to display the reload button once a navigation completes.
-add_LostFocus | Used to hide the options dropdown when the user clicks away of it.
 ExecuteScript | Used to get the title and favicon of a visited page.
 PostWebMessageAsJson | Used to communicate WebViews. All messages use JSON to pass parameters needed.
 add_WebMessageReceived | Used to handle web messages posted to the WebView.
 CallDevToolsProtocolMethod | Used to enable listening for security events, which will notify of security status changes in a document.
+
+ICoreWebView2Host API | Feature(s)
+:--- | :---
+get_CoreWebView2 | Used to get the CoreWebView2 associated with this CoreWebView2Host.
+add_LostFocus | Used to hide the options dropdown when the user clicks away of it.
 <br />
 
 ## Implementing the features
@@ -125,7 +133,7 @@ The sections below describe how some of the features in WebView2Browser were imp
 
 ## The basics
 ### Set up the environment, create a WebView
-WebView2 allows you to host web content in your Windows app. It exposes the globals [CreateWebView2Environment](https://docs.microsoft.com/en-us/microsoft-edge/hosting/webview2/reference/webview2.idl#createwebview2environment) and [CreateWebView2EnvironmentWithDetails](https://docs.microsoft.com/en-us/microsoft-edge/hosting/webview2/reference/webview2.idl#createwebview2environmentwithdetails) from which we can create the two separate environments for the browser's UI and content.
+WebView2 allows you to host web content in your Windows app. It exposes the globals [CreateCoreWebView2Environment](https://docs.microsoft.com/microsoft-edge/hosting/webview2/reference/webview2.idl#createcorewebview2environment) and [CreateCoreWebView2EnvironmentWithDetails](https://docs.microsoft.com/microsoft-edge/hosting/webview2/reference/webview2.idl#createcorewebview2environmentwithdetails) from which we can create the two separate environments for the browser's UI and content.
 
 ```cpp
     // Get directory for user data. This will be kept separated from the
@@ -137,9 +145,9 @@ WebView2 allows you to host web content in your Windows app. It exposes the glob
     // tabs will be created from this environment and kept isolated from the
     // browser UI. This enviroment is created first so the UI can request new
     // tabs when it's ready.
-    HRESULT hr = CreateWebView2EnvironmentWithDetails(nullptr, userDataDirectory.c_str(), WEBVIEW2_RELEASE_CHANNEL_PREFERENCE_STABLE,
-        L"", Callback<IWebView2CreateWebView2EnvironmentCompletedHandler>(
-            [this](HRESULT result, IWebView2Environment* env) -> HRESULT
+    HRESULT hr = CreateCoreWebView2EnvironmentWithDetails(nullptr, userDataDirectory.c_str(),
+        L"", Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
+            [this](HRESULT result, ICoreWebView2Environment* env) -> HRESULT
     {
         RETURN_IF_FAILED(result);
 
@@ -163,9 +171,9 @@ HRESULT BrowserWindow::InitUIWebViews()
 
     // Create WebView environment for browser UI. A separate data directory is
     // used to isolate the browser UI from web content requested by the user.
-    return CreateWebView2EnvironmentWithDetails(nullptr, browserDataDirectory.c_str(), WEBVIEW2_RELEASE_CHANNEL_PREFERENCE_STABLE,
-        L"", Callback<IWebView2CreateWebView2EnvironmentCompletedHandler>(
-            [this](HRESULT result, IWebView2Environment* env) -> HRESULT
+    return CreateCoreWebView2EnvironmentWithDetails(nullptr, browserDataDirectory.c_str(),
+        L"", Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
+            [this](HRESULT result, ICoreWebView2Environment* env) -> HRESULT
     {
         // Environment is ready, create the WebView
         m_uiEnv = env;
@@ -178,13 +186,13 @@ HRESULT BrowserWindow::InitUIWebViews()
 }
 ```
 
-We use the [IWebView2CreateWebView2EnvironmentCompletedHandler](https://docs.microsoft.com/en-us/microsoft-edge/hosting/webview2/reference/iwebview2createwebview2environmentcompletedhandler#interface_i_web_view2_create_web_view2_environment_completed_handler) to create the UI WebViews once the environment is ready.
+We use the [ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler](https://docs.microsoft.com/microsoft-edge/hosting/webview2/reference/icorewebview2createcorewebview2environmentcompletedhandler) to create the UI WebViews once the environment is ready.
 
 ```cpp
 HRESULT BrowserWindow::CreateBrowserControlsWebView()
 {
-    return m_uiEnv->CreateWebView(m_hWnd, Callback<IWebView2CreateWebViewCompletedHandler>(
-        [this](HRESULT result, IWebView2WebView* webview) -> HRESULT
+    return m_uiEnv->CreateCoreWebView2Host(m_hWnd, Callback<ICoreWebView2CreateCoreWebView2HostCompletedHandler>(
+        [this](HRESULT result, ICoreWebView2Host* host) -> HRESULT
     {
         if (!SUCCEEDED(result))
         {
@@ -192,17 +200,17 @@ HRESULT BrowserWindow::CreateBrowserControlsWebView()
             return result;
         }
         // WebView created
-        m_controlsWebView = webview;
+        m_controlsHost = host;
+        CheckFailure(m_controlsHost->get_CoreWebView2(&m_controlsWebView), L"");
 
-        wil::com_ptr<IWebView2Settings> settings;
+        wil::com_ptr<ICoreWebView2Settings> settings;
         RETURN_IF_FAILED(m_controlsWebView->get_Settings(&settings));
         RETURN_IF_FAILED(settings->put_AreDevToolsEnabled(FALSE));
-        RETURN_IF_FAILED(settings->put_IsFullscreenAllowed(FALSE));
 
-        RETURN_IF_FAILED(m_controlsWebView->add_ZoomFactorChanged(Callback<IWebView2ZoomFactorChangedEventHandler>(
-            [](IWebView2WebView* webview, IUnknown* args) -> HRESULT
+        RETURN_IF_FAILED(m_controlsHost->add_ZoomFactorChanged(Callback<ICoreWebView2ZoomFactorChangedEventHandler>(
+            [](ICoreWebView2Host* host, IUnknown* args) -> HRESULT
         {
-            webview->put_ZoomFactor(1.0);
+            host->put_ZoomFactor(1.0);
             return S_OK;
         }
         ).Get(), &m_controlsZoomToken));
@@ -217,7 +225,7 @@ HRESULT BrowserWindow::CreateBrowserControlsWebView()
     }).Get());
 }
 ```
-We're setting up a few things here. The [IWebView2Settings](https://docs.microsoft.com/en-us/microsoft-edge/hosting/webview2/reference/iwebview2settings) interface is used to disable DevTools in the WebView powering the browser controls. We're also adding a handler for received web messages. This handler will enable us to do something when the user interacts with the controls in this WebView.
+We're setting up a few things here. The [ICoreWebView2Settings](https://docs.microsoft.com/microsoft-edge/hosting/webview2/reference/icorewebview2settings) interface is used to disable DevTools in the WebView powering the browser controls. We're also adding a handler for received web messages. This handler will enable us to do something when the user interacts with the controls in this WebView.
 
 ### Navigate to web page
 You can navigate to a web page by entering its URI in the address bar. When pressing Enter, the controls WebView will post a web message to the host app so it can navigate the active tab to the specified location. Code below shows how the host Win32 application will handle that message.
@@ -261,8 +269,8 @@ The address bar is updated every time there is a change in the active tab's docu
 
 ```cpp
         // Register event handler for doc state change
-        RETURN_IF_FAILED(m_contentWebView->add_DocumentStateChanged(Callback<IWebView2DocumentStateChangedEventHandler>(
-            [this, browserWindow](IWebView2WebView* webview, IWebView2DocumentStateChangedEventArgs* args) -> HRESULT
+        RETURN_IF_FAILED(m_contentWebView->add_SourceChanged(Callback<ICoreWebView2SourceChangedEventHandler>(
+            [this, browserWindow](ICoreWebView2* webview, ICoreWebView2SourceChangedEventArgs* args) -> HRESULT
         {
             BrowserWindow::CheckFailure(browserWindow->HandleTabURIUpdate(m_tabId, webview), L"Can't update address bar");
 
@@ -270,7 +278,7 @@ The address bar is updated every time there is a change in the active tab's docu
         }).Get(), &m_uriUpdateForwarderToken));
 ```
 ```cpp
-HRESULT BrowserWindow::HandleTabURIUpdate(size_t tabId, IWebView2WebView* webview)
+HRESULT BrowserWindow::HandleTabURIUpdate(size_t tabId, ICoreWebView2* webview)
 {
     wil::unique_cotaskmem_string source;
     RETURN_IF_FAILED(webview->get_Source(&source));
@@ -281,6 +289,15 @@ HRESULT BrowserWindow::HandleTabURIUpdate(size_t tabId, IWebView2WebView* webvie
     jsonObj[L"args"][L"tabId"] = web::json::value::number(tabId);
     jsonObj[L"args"][L"uri"] = web::json::value(source.get());
 
+    // ...
+
+    RETURN_IF_FAILED(PostJsonToWebView(jsonObj, m_controlsWebView.Get()));
+
+    return S_OK;
+}
+
+HRESULT BrowserWindow::HandleTabHistoryUpdate(size_t tabId, ICoreWebView2* webview)
+{
     // ...
 
     BOOL canGoForward = FALSE;
@@ -398,12 +415,12 @@ function reloadActiveTabContent() {
 
 ## Some interesting features
 ### Communicating the WebViews
-We need to communicate the WebViews powering tabs and UI so that user interactions in one have the desired effect in the other. WebView2Browser makes use of set of very useful WebView2 APIs for this purpose, including [PostWebMessageAsJson](https://docs.microsoft.com/en-us/microsoft-edge/hosting/webview2/reference/iwebview2webview#postwebmessageasjson), [add_WebMessageReceived](https://docs.microsoft.com/en-us/microsoft-edge/hosting/webview2/reference/iwebview2webview#add_webmessagereceived) and [IWebView2WebMessageReceivedEventHandler](https://docs.microsoft.com/en-us/microsoft-edge/hosting/webview2/reference/iwebview2webmessagereceivedeventhandler). On the JavaScript side, we're making use of the `window.chrome.webview` object exposed to call the `postMessage` method and add an event lister for received messages.
+We need to communicate the WebViews powering tabs and UI so that user interactions in one have the desired effect in the other. WebView2Browser makes use of set of very useful WebView2 APIs for this purpose, including [PostWebMessageAsJson](https://docs.microsoft.com/microsoft-edge/hosting/webview2/reference/icorewebview2#postwebmessageasjson), [add_WebMessageReceived](https://docs.microsoft.com/microsoft-edge/hosting/webview2/reference/icorewebview2#add_webmessagereceived) and [ICoreWebView2WebMessageReceivedEventHandler](https://docs.microsoft.com/microsoft-edge/hosting/webview2/reference/icorewebview2webmessagereceivedeventhandler). On the JavaScript side, we're making use of the `window.chrome.webview` object exposed to call the `postMessage` method and add an event lister for received messages.
 ```cpp
 HRESULT BrowserWindow::CreateBrowserControlsWebView()
 {
-    return m_uiEnv->CreateWebView(m_hWnd, Callback<IWebView2CreateWebViewCompletedHandler>(
-        [this](HRESULT result, IWebView2WebView* webview) -> HRESULT
+    return m_uiEnv->CreateCoreWebView2Host(m_hWnd, Callback<ICoreWebView2CreateCoreWebView2HostCompletedHandler>(
+        [this](HRESULT result, ICoreWebView2Host* host) -> HRESULT
     {
         // ...
 
@@ -416,7 +433,7 @@ HRESULT BrowserWindow::CreateBrowserControlsWebView()
 }
 ```
 ```cpp
-HRESULT BrowserWindow::PostJsonToWebView(web::json::value jsonObj, IWebView2WebView* webview)
+HRESULT BrowserWindow::PostJsonToWebView(web::json::value jsonObj, ICoreWebView2* webview)
 {
     utility::stringstream_t stream;
     jsonObj.serialize(stream);
@@ -426,7 +443,7 @@ HRESULT BrowserWindow::PostJsonToWebView(web::json::value jsonObj, IWebView2WebV
 
 // ...
 
-HRESULT BrowserWindow::HandleTabNavStarting(size_t tabId, IWebView2WebView* webview)
+HRESULT BrowserWindow::HandleTabNavStarting(size_t tabId, ICoreWebView2* webview)
 {
     web::json::value jsonObj = web::json::value::parse(L"{}");
     jsonObj[L"message"] = web::json::value(MG_NAV_STARTING);
@@ -491,7 +508,7 @@ function createNewTab(shouldBeActive) {
     }
 }
 ```
-On the host app side, the registered [IWebView2WebMessageReceivedEventHandler](https://docs.microsoft.com/en-us/microsoft-edge/hosting/webview2/reference/iwebview2webmessagereceivedeventhandler) will catch the message and create the WebView for that tab.
+On the host app side, the registered [ICoreWebView2WebMessageReceivedEventHandler](https://docs.microsoft.com/microsoft-edge/hosting/webview2/reference/icorewebview2webmessagereceivedeventhandler) will catch the message and create the WebView for that tab.
 ```cpp
         case MG_CREATE_TAB:
         {
@@ -513,7 +530,7 @@ On the host app side, the registered [IWebView2WebMessageReceivedEventHandler](h
         break;
 ```
 ```cpp
-std::unique_ptr<Tab> Tab::CreateNewTab(HWND hWnd, IWebView2Environment* env, size_t id, bool shouldBeActive)
+std::unique_ptr<Tab> Tab::CreateNewTab(HWND hWnd, ICoreWebView2Environment* env, size_t id, bool shouldBeActive)
 {
     std::unique_ptr<Tab> tab = std::make_unique<Tab>();
 
@@ -525,38 +542,48 @@ std::unique_ptr<Tab> Tab::CreateNewTab(HWND hWnd, IWebView2Environment* env, siz
     return tab;
 }
 
-HRESULT Tab::Init(IWebView2Environment* env, bool shouldBeActive)
+HRESULT Tab::Init(ICoreWebView2Environment* env, bool shouldBeActive)
 {
-    return env->CreateWebView(m_parentHWnd, Callback<IWebView2CreateWebViewCompletedHandler>(
-        [this, shouldBeActive](HRESULT result, IWebView2WebView* webview) -> HRESULT {
+    return env->CreateCoreWebView2Host(m_parentHWnd, Callback<ICoreWebView2CreateCoreWebView2HostCompletedHandler>(
+        [this, shouldBeActive](HRESULT result, ICoreWebView2Host* host) -> HRESULT {
         if (!SUCCEEDED(result))
         {
             OutputDebugString(L"Tab WebView creation failed\n");
             return result;
         }
-        m_contentWebView = webview;
+        m_contentHost = host;
+        BrowserWindow::CheckFailure(m_contentHost->get_CoreWebView2(&m_contentWebView), L"");
         BrowserWindow* browserWindow = reinterpret_cast<BrowserWindow*>(GetWindowLongPtr(m_parentHWnd, GWLP_USERDATA));
         RETURN_IF_FAILED(m_contentWebView->add_WebMessageReceived(m_messageBroker.Get(), &m_messageBrokerToken));
 
-        // Register event handler for doc state change
-        RETURN_IF_FAILED(m_contentWebView->add_DocumentStateChanged(Callback<IWebView2DocumentStateChangedEventHandler>(
-            [this, browserWindow](IWebView2WebView* webview, IWebView2DocumentStateChangedEventArgs* args) -> HRESULT
+        // Register event handler for history change
+        RETURN_IF_FAILED(m_contentWebView->add_HistoryChanged(Callback<ICoreWebView2HistoryChangedEventHandler>(
+            [this, browserWindow](ICoreWebView2* webview, IUnknown* args) -> HRESULT
+        {
+            BrowserWindow::CheckFailure(browserWindow->HandleTabHistoryUpdate(m_tabId, webview), L"Can't update go back/forward buttons.");
+
+            return S_OK;
+        }).Get(), &m_historyUpdateForwarderToken));
+
+        // Register event handler for source change
+        RETURN_IF_FAILED(m_contentWebView->add_SourceChanged(Callback<ICoreWebView2SourceChangedEventHandler>(
+            [this, browserWindow](ICoreWebView2* webview, ICoreWebView2SourceChangedEventArgs* args) -> HRESULT
         {
             BrowserWindow::CheckFailure(browserWindow->HandleTabURIUpdate(m_tabId, webview), L"Can't update address bar");
 
             return S_OK;
         }).Get(), &m_uriUpdateForwarderToken));
 
-        RETURN_IF_FAILED(m_contentWebView->add_NavigationStarting(Callback<IWebView2NavigationStartingEventHandler>(
-            [this, browserWindow](IWebView2WebView* webview, IWebView2NavigationStartingEventArgs* args) -> HRESULT
+        RETURN_IF_FAILED(m_contentWebView->add_NavigationStarting(Callback<ICoreWebView2NavigationStartingEventHandler>(
+            [this, browserWindow](ICoreWebView2* webview, ICoreWebView2NavigationStartingEventArgs* args) -> HRESULT
         {
             BrowserWindow::CheckFailure(browserWindow->HandleTabNavStarting(m_tabId, webview), L"Can't update reload button");
 
             return S_OK;
         }).Get(), &m_navStartingToken));
 
-        RETURN_IF_FAILED(m_contentWebView->add_NavigationCompleted(Callback<IWebView2NavigationCompletedEventHandler>(
-            [this, browserWindow](IWebView2WebView* webview, IWebView2NavigationCompletedEventArgs* args) -> HRESULT
+        RETURN_IF_FAILED(m_contentWebView->add_NavigationCompleted(Callback<ICoreWebView2NavigationCompletedEventHandler>(
+            [this, browserWindow](ICoreWebView2* webview, ICoreWebView2NavigationCompletedEventArgs* args) -> HRESULT
         {
             BrowserWindow::CheckFailure(browserWindow->HandleTabNavCompleted(m_tabId, webview, args), L"Can't udpate reload button");
             return S_OK;
@@ -591,21 +618,23 @@ HRESULT BrowserWindow::SwitchToTab(size_t tabId)
 ```
 
 ### Updating the security icon
-We use the [CallDevToolsProtocolMethod](https://docs.microsoft.com/en-us/microsoft-edge/hosting/webview2/reference/iwebview2webview#calldevtoolsprotocolmethod) to enable listening for security events. Whenever a `securityStateChanged` event is fired, we will use the new state to update the security icon on the controls WebView.
+We use the [CallDevToolsProtocolMethod](https://docs.microsoft.com/microsoft-edge/hosting/webview2/reference/icorewebview2#calldevtoolsprotocolmethod) to enable listening for security events. Whenever a `securityStateChanged` event is fired, we will use the new state to update the security icon on the controls WebView.
 ```cpp
         // Enable listening for security events to update secure icon
         RETURN_IF_FAILED(m_contentWebView->CallDevToolsProtocolMethod(L"Security.enable", L"{}", nullptr));
 
+        BrowserWindow::CheckFailure(m_contentWebView->GetDevToolsProtocolEventReceiver(L"Security.securityStateChanged", &m_securityStateChangedReceiver), L"");
+
         // Forward security status updates to browser
-        RETURN_IF_FAILED(m_contentWebView->add_DevToolsProtocolEventReceived(L"Security.securityStateChanged", Callback<IWebView2DevToolsProtocolEventReceivedEventHandler>(
-            [this, browserWindow](IWebView2WebView* webview, IWebView2DevToolsProtocolEventReceivedEventArgs* args) -> HRESULT
+        RETURN_IF_FAILED(m_securityStateChangedReceiver->add_DevToolsProtocolEventReceived(Callback<ICoreWebView2DevToolsProtocolEventReceivedEventHandler>(
+            [this, browserWindow](ICoreWebView2* webview, ICoreWebView2DevToolsProtocolEventReceivedEventArgs* args) -> HRESULT
         {
             BrowserWindow::CheckFailure(browserWindow->HandleTabSecurityUpdate(m_tabId, webview, args), L"Can't udpate security icon");
             return S_OK;
         }).Get(), &m_securityUpdateToken));
 ```
 ```cpp
-HRESULT BrowserWindow::HandleTabSecurityUpdate(size_t tabId, IWebView2WebView* webview, IWebView2DevToolsProtocolEventReceivedEventArgs* args)
+HRESULT BrowserWindow::HandleTabSecurityUpdate(size_t tabId, ICoreWebView2* webview, ICoreWebView2DevToolsProtocolEventReceivedEventArgs* args)
 {
     wil::unique_cotaskmem_string jsonArgs;
     RETURN_IF_FAILED(args->get_ParameterObjectAsJson(&jsonArgs));
