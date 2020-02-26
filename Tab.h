@@ -11,7 +11,7 @@ class Tab
 public:
     Microsoft::WRL::ComPtr<ICoreWebView2Host> m_contentHost;
     Microsoft::WRL::ComPtr<ICoreWebView2> m_contentWebView;
-    Microsoft::WRL::ComPtr<ICoreWebView2DevToolsProtocolEventReceiver> m_contentReceiver;
+    Microsoft::WRL::ComPtr<ICoreWebView2DevToolsProtocolEventReceiver> m_securityStateChangedReceiver;
 
     static std::unique_ptr<Tab> CreateNewTab(HWND hWnd, ICoreWebView2Environment* env, size_t id, bool shouldBeActive);
     HRESULT ResizeWebView();
