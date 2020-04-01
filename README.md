@@ -92,11 +92,11 @@ ICoreWebView2DevToolsProtocolEventReceivedEventHandler | Used along with add_Dev
 ICoreWebView2DevToolsProtocolEventReceiver | Used along with add_DevToolsProtocolEventReceived to listen for CDP security events to update the lock icon in the browser UI. |
 ICoreWebView2ExecuteScriptCompletedHandler | Used along with ExecuteScript to get the title and favicon from the visited page. |
 ICoreWebView2FocusChangedEventHandler | Used along with add_LostFocus to hide the browser options dropdown when it loses focus.
-ICoreWebView2HistoryChangedEventHandler | Used along with add_HistoryChanged to udpate the navigation buttons in the browser UI. |
+ICoreWebView2HistoryChangedEventHandler | Used along with add_HistoryChanged to update the navigation buttons in the browser UI. |
 ICoreWebView2Host | There are several WebViewHosts in WebView2Browser and we fetch the associated WebViews from them.
-ICoreWebView2NavigationCompletedEventHandler | Used along with add_NavigationCompleted to udpate the reload button in the browser UI.
+ICoreWebView2NavigationCompletedEventHandler | Used along with add_NavigationCompleted to update the reload button in the browser UI.
 ICoreWebView2Settings | Used to disable DevTools in the browser UI.
-ICoreWebView2SourceChangedEventHandler | Used along with add_SourceChanged to udpate the address bar in the browser UI. |
+ICoreWebView2SourceChangedEventHandler | Used along with add_SourceChanged to update the address bar in the browser UI. |
 ICoreWebView2WebMessageReceivedEventHandler | This is one of the most important APIs to WebView2Browser. Most functionalities involving communication across WebViews use this.
 
 ICoreWebView2 API | Feature(s)
@@ -313,7 +313,7 @@ HRESULT BrowserWindow::HandleTabHistoryUpdate(size_t tabId, ICoreWebView2* webvi
     return S_OK;
 }
 ```
-We have sent the `MG_UPDATE_URI` message along with the URI to the controls WebView. Now we want to reflect those changes on the tab state and udpate the UI if necessary.
+We have sent the `MG_UPDATE_URI` message along with the URI to the controls WebView. Now we want to reflect those changes on the tab state and update the UI if necessary.
 ```javascript
         case commands.MG_UPDATE_URI:
             if (isValidTabId(args.tabId)) {
@@ -376,7 +376,7 @@ The host application side:
 ```
 
 ### Reloading, stop navigation
-We use the `NavigationStarting` event fired by a content WebView to udpate its associated tab loading state in the controls WebView. Similarly, when a WebView fires the `NavigationCompleted` event, we use that event to instruct the controls WebView to update the tab state. The active tab state in the controls WebView will determine whether to show the reload or the cancel button. Each of those will post a message back to the host application when clicked, so that the WebView for that tab can be reloaded or have its navigation canceled, accordingly.
+We use the `NavigationStarting` event fired by a content WebView to update its associated tab loading state in the controls WebView. Similarly, when a WebView fires the `NavigationCompleted` event, we use that event to instruct the controls WebView to update the tab state. The active tab state in the controls WebView will determine whether to show the reload or the cancel button. Each of those will post a message back to the host application when clicked, so that the WebView for that tab can be reloaded or have its navigation canceled, accordingly.
 ```javascript
 function reloadActiveTabContent() {
     var message = {
@@ -585,7 +585,7 @@ HRESULT Tab::Init(ICoreWebView2Environment* env, bool shouldBeActive)
         RETURN_IF_FAILED(m_contentWebView->add_NavigationCompleted(Callback<ICoreWebView2NavigationCompletedEventHandler>(
             [this, browserWindow](ICoreWebView2* webview, ICoreWebView2NavigationCompletedEventArgs* args) -> HRESULT
         {
-            BrowserWindow::CheckFailure(browserWindow->HandleTabNavCompleted(m_tabId, webview, args), L"Can't udpate reload button");
+            BrowserWindow::CheckFailure(browserWindow->HandleTabNavCompleted(m_tabId, webview, args), L"Can't update reload button");
             return S_OK;
         }).Get(), &m_navCompletedToken));
 
@@ -629,7 +629,7 @@ We use the [CallDevToolsProtocolMethod](https://docs.microsoft.com/microsoft-edg
         RETURN_IF_FAILED(m_securityStateChangedReceiver->add_DevToolsProtocolEventReceived(Callback<ICoreWebView2DevToolsProtocolEventReceivedEventHandler>(
             [this, browserWindow](ICoreWebView2* webview, ICoreWebView2DevToolsProtocolEventReceivedEventArgs* args) -> HRESULT
         {
-            BrowserWindow::CheckFailure(browserWindow->HandleTabSecurityUpdate(m_tabId, webview, args), L"Can't udpate security icon");
+            BrowserWindow::CheckFailure(browserWindow->HandleTabSecurityUpdate(m_tabId, webview, args), L"Can't update security icon");
             return S_OK;
         }).Get(), &m_securityUpdateToken));
 ```
