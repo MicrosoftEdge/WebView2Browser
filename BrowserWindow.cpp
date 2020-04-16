@@ -440,7 +440,7 @@ void BrowserWindow::SetUIMessageBroker()
         case MG_SHOW_OPTIONS:
         {
             CheckFailure(m_optionsHost->put_IsVisible(TRUE), L"");
-            m_optionsHost->MoveFocus(CORE_WEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC);
+            m_optionsHost->MoveFocus(COREWEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC);
         }
         break;
         case MG_HIDE_OPTIONS:
@@ -450,7 +450,7 @@ void BrowserWindow::SetUIMessageBroker()
         break;
         case MG_OPTION_SELECTED:
         {
-            m_tabs.at(m_activeTabId)->m_contentHost->MoveFocus(CORE_WEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC);
+            m_tabs.at(m_activeTabId)->m_contentHost->MoveFocus(COREWEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC);
         }
         break;
         case MG_GET_FAVORITES:
