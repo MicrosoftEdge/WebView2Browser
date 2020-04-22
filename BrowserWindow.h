@@ -42,8 +42,8 @@ protected:
 
     Microsoft::WRL::ComPtr<ICoreWebView2Environment> m_uiEnv;
     Microsoft::WRL::ComPtr<ICoreWebView2Environment> m_contentEnv;
-    Microsoft::WRL::ComPtr<ICoreWebView2Host> m_controlsHost;
-    Microsoft::WRL::ComPtr<ICoreWebView2Host> m_optionsHost;
+    Microsoft::WRL::ComPtr<ICoreWebView2Controller> m_controlsController;
+    Microsoft::WRL::ComPtr<ICoreWebView2Controller> m_optionsController;
     Microsoft::WRL::ComPtr<ICoreWebView2> m_controlsWebView;
     Microsoft::WRL::ComPtr<ICoreWebView2> m_optionsWebView;
     std::map<size_t,std::unique_ptr<Tab>> m_tabs;

@@ -236,8 +236,8 @@ HRESULT BrowserWindow::InitUIWebViews()
 
 HRESULT BrowserWindow::CreateBrowserControlsWebView()
 {
-    return m_uiEnv->CreateCoreWebView2Host(m_hWnd, Callback<ICoreWebView2CreateCoreWebView2HostCompletedHandler>(
-        [this](HRESULT result, ICoreWebView2Host* host) -> HRESULT
+    return m_uiEnv->CreateCoreWebView2Controller(m_hWnd, Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>(
+        [this](HRESULT result, ICoreWebView2Controller* host) -> HRESULT
     {
         if (!SUCCEEDED(result))
         {
@@ -245,15 +245,15 @@ HRESULT BrowserWindow::CreateBrowserControlsWebView()
             return result;
         }
         // WebView created
-        m_controlsHost = host;
-        CheckFailure(m_controlsHost->get_CoreWebView2(&m_controlsWebView), L"");
+        m_controlsController = host;
+        CheckFailure(m_controlsController->get_CoreWebView2(&m_controlsWebView), L"");
 
         wil::com_ptr<ICoreWebView2Settings> settings;
         RETURN_IF_FAILED(m_controlsWebView->get_Settings(&settings));
         RETURN_IF_FAILED(settings->put_AreDevToolsEnabled(FALSE));
 
-        RETURN_IF_FAILED(m_controlsHost->add_ZoomFactorChanged(Callback<ICoreWebView2ZoomFactorChangedEventHandler>(
-            [](ICoreWebView2Host* host, IUnknown* args) -> HRESULT
+        RETURN_IF_FAILED(m_controlsController->add_ZoomFactorChanged(Callback<ICoreWebView2ZoomFactorChangedEventHandler>(
+            [](ICoreWebView2Controller* host, IUnknown* args) -> HRESULT
         {
             host->put_ZoomFactor(1.0);
             return S_OK;
@@ -272,8 +272,8 @@ HRESULT BrowserWindow::CreateBrowserControlsWebView()
 
 HRESULT BrowserWindow::CreateBrowserOptionsWebView()
 {
-    return m_uiEnv->CreateCoreWebView2Host(m_hWnd, Callback<ICoreWebView2CreateCoreWebView2HostCompletedHandler>(
-        [this](HRESULT result, ICoreWebView2Host* host) -> HRESULT
+    return m_uiEnv->CreateCoreWebView2Controller(m_hWnd, Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>(
+        [this](HRESULT result, ICoreWebView2Controller* host) -> HRESULT
     {
         if (!SUCCEEDED(result))
         {
@@ -281,15 +281,15 @@ HRESULT BrowserWindow::CreateBrowserOptionsWebView()
             return result;
         }
         // WebView created
-        m_optionsHost = host;
-        CheckFailure(m_optionsHost->get_CoreWebView2(&m_optionsWebView), L"");
+        m_optionsController = host;
+        CheckFailure(m_optionsController->get_CoreWebView2(&m_optionsWebView), L"");
 
         wil::com_ptr<ICoreWebView2Settings> settings;
         RETURN_IF_FAILED(m_optionsWebView->get_Settings(&settings));
         RETURN_IF_FAILED(settings->put_AreDevToolsEnabled(FALSE));
 
-        RETURN_IF_FAILED(m_optionsHost->add_ZoomFactorChanged(Callback<ICoreWebView2ZoomFactorChangedEventHandler>(
-            [](ICoreWebView2Host* host, IUnknown* args) -> HRESULT
+        RETURN_IF_FAILED(m_optionsController->add_ZoomFactorChanged(Callback<ICoreWebView2ZoomFactorChangedEventHandler>(
+            [](ICoreWebView2Controller* host, IUnknown* args) -> HRESULT
         {
             host->put_ZoomFactor(1.0);
             return S_OK;
@@ -297,12 +297,12 @@ HRESULT BrowserWindow::CreateBrowserOptionsWebView()
         ).Get(), &m_optionsZoomToken));
 
         // Hide by default
-        RETURN_IF_FAILED(m_optionsHost->put_IsVisible(FALSE));
+        RETURN_IF_FAILED(m_optionsController->put_IsVisible(FALSE));
         RETURN_IF_FAILED(m_optionsWebView->add_WebMessageReceived(m_uiMessageBroker.Get(), &m_optionsUIMessageBrokerToken));
 
         // Hide menu when focus is lost
-        RETURN_IF_FAILED(m_optionsHost->add_LostFocus(Callback<ICoreWebView2FocusChangedEventHandler>(
-            [this](ICoreWebView2Host* sender, IUnknown* args) -> HRESULT
+        RETURN_IF_FAILED(m_optionsController->add_LostFocus(Callback<ICoreWebView2FocusChangedEventHandler>(
+            [this](ICoreWebView2Controller* sender, IUnknown* args) -> HRESULT
         {
             web::json::value jsonObj = web::json::value::parse(L"{}");
             jsonObj[L"message"] = web::json::value(MG_OPTIONS_LOST_FOCUS);
@@ -363,7 +363,7 @@ void BrowserWindow::SetUIMessageBroker()
             }
             else
             {
-                m_tabs.at(id)->m_contentHost->Close();
+                m_tabs.at(id)->m_contentController->Close();
                 it->second = std::move(newTab);
             }
         }
@@ -428,7 +428,7 @@ void BrowserWindow::SetUIMessageBroker()
         case MG_CLOSE_TAB:
         {
             size_t id = args.at(L"tabId").as_number().to_uint32();
-            m_tabs.at(id)->m_contentHost->Close();
+            m_tabs.at(id)->m_contentController->Close();
             m_tabs.erase(id);
         }
         break;
@@ -439,18 +439,18 @@ void BrowserWindow::SetUIMessageBroker()
         break;
         case MG_SHOW_OPTIONS:
         {
-            CheckFailure(m_optionsHost->put_IsVisible(TRUE), L"");
-            m_optionsHost->MoveFocus(COREWEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC);
+            CheckFailure(m_optionsController->put_IsVisible(TRUE), L"");
+            m_optionsController->MoveFocus(COREWEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC);
         }
         break;
         case MG_HIDE_OPTIONS:
         {
-            CheckFailure(m_optionsHost->put_IsVisible(FALSE), L"Something went wrong when trying to close the options dropdown.");
+            CheckFailure(m_optionsController->put_IsVisible(FALSE), L"Something went wrong when trying to close the options dropdown.");
         }
         break;
         case MG_OPTION_SELECTED:
         {
-            m_tabs.at(m_activeTabId)->m_contentHost->MoveFocus(COREWEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC);
+            m_tabs.at(m_activeTabId)->m_contentController->MoveFocus(COREWEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC);
         }
         break;
         case MG_GET_FAVORITES:
@@ -480,12 +480,12 @@ HRESULT BrowserWindow::SwitchToTab(size_t tabId)
     size_t previousActiveTab = m_activeTabId;
 
     RETURN_IF_FAILED(m_tabs.at(tabId)->ResizeWebView());
-    RETURN_IF_FAILED(m_tabs.at(tabId)->m_contentHost->put_IsVisible(TRUE));
+    RETURN_IF_FAILED(m_tabs.at(tabId)->m_contentController->put_IsVisible(TRUE));
     m_activeTabId = tabId;
 
     if (previousActiveTab != INVALID_TAB_ID && previousActiveTab != m_activeTabId)
     {
-        RETURN_IF_FAILED(m_tabs.at(previousActiveTab)->m_contentHost->put_IsVisible(FALSE));
+        RETURN_IF_FAILED(m_tabs.at(previousActiveTab)->m_contentController->put_IsVisible(FALSE));
     }
 
     return S_OK;
@@ -824,7 +824,7 @@ HRESULT BrowserWindow::ResizeUIWebViews()
         bounds.bottom = bounds.top + GetDPIAwareBound(c_uiBarHeight);
         bounds.bottom += 1;
 
-        RETURN_IF_FAILED(m_controlsHost->put_Bounds(bounds));
+        RETURN_IF_FAILED(m_controlsController->put_Bounds(bounds));
     }
 
     if (m_optionsWebView != nullptr)
@@ -835,7 +835,7 @@ HRESULT BrowserWindow::ResizeUIWebViews()
         bounds.bottom = bounds.top + GetDPIAwareBound(c_optionsDropdownHeight);
         bounds.left = bounds.right - GetDPIAwareBound(c_optionsDropdownWidth);
 
-        RETURN_IF_FAILED(m_optionsHost->put_Bounds(bounds));
+        RETURN_IF_FAILED(m_optionsController->put_Bounds(bounds));
     }
 
     // Workaround for black controls WebView issue in Windows 7
