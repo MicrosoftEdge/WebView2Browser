@@ -93,7 +93,7 @@ ICoreWebView2DevToolsProtocolEventReceiver | Used along with add_DevToolsProtoco
 ICoreWebView2ExecuteScriptCompletedHandler | Used along with ExecuteScript to get the title and favicon from the visited page. |
 ICoreWebView2FocusChangedEventHandler | Used along with add_LostFocus to hide the browser options dropdown when it loses focus.
 ICoreWebView2HistoryChangedEventHandler | Used along with add_HistoryChanged to udpate the navigation buttons in the browser UI. |
-ICoreWebView2Host | There are several WebViewHosts in WebView2Browser and we fetch the associated WebViews from them.
+ICoreWebView2Controller | There are several WebViewControllers in WebView2Browser and we fetch the associated WebViews from them.
 ICoreWebView2NavigationCompletedEventHandler | Used along with add_NavigationCompleted to udpate the reload button in the browser UI.
 ICoreWebView2Settings | Used to disable DevTools in the browser UI.
 ICoreWebView2SourceChangedEventHandler | Used along with add_SourceChanged to udpate the address bar in the browser UI. |
@@ -110,9 +110,9 @@ PostWebMessageAsJson | Used to communicate WebViews. All messages use JSON to pa
 add_WebMessageReceived | Used to handle web messages posted to the WebView.
 CallDevToolsProtocolMethod | Used to enable listening for security events, which will notify of security status changes in a document.
 
-ICoreWebView2Host API | Feature(s)
+ICoreWebView2Controller API | Feature(s)
 :--- | :---
-get_CoreWebView2 | Used to get the CoreWebView2 associated with this CoreWebView2Host.
+get_CoreWebView2 | Used to get the CoreWebView2 associated with this CoreWebView2Controller.
 add_LostFocus | Used to hide the options dropdown when the user clicks away of it.
 <br />
 
@@ -191,8 +191,8 @@ We use the [ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler](https://
 ```cpp
 HRESULT BrowserWindow::CreateBrowserControlsWebView()
 {
-    return m_uiEnv->CreateCoreWebView2Host(m_hWnd, Callback<ICoreWebView2CreateCoreWebView2HostCompletedHandler>(
-        [this](HRESULT result, ICoreWebView2Host* host) -> HRESULT
+    return m_uiEnv->CreateCoreWebView2Controller(m_hWnd, Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>(
+        [this](HRESULT result, ICoreWebView2Controller* controller) -> HRESULT
     {
         if (!SUCCEEDED(result))
         {
@@ -200,17 +200,17 @@ HRESULT BrowserWindow::CreateBrowserControlsWebView()
             return result;
         }
         // WebView created
-        m_controlsHost = host;
-        CheckFailure(m_controlsHost->get_CoreWebView2(&m_controlsWebView), L"");
+        m_controlsController = controller;
+        CheckFailure(m_controlsController->get_CoreWebView2(&m_controlsWebView), L"");
 
         wil::com_ptr<ICoreWebView2Settings> settings;
         RETURN_IF_FAILED(m_controlsWebView->get_Settings(&settings));
         RETURN_IF_FAILED(settings->put_AreDevToolsEnabled(FALSE));
 
-        RETURN_IF_FAILED(m_controlsHost->add_ZoomFactorChanged(Callback<ICoreWebView2ZoomFactorChangedEventHandler>(
-            [](ICoreWebView2Host* host, IUnknown* args) -> HRESULT
+        RETURN_IF_FAILED(m_controlsController->add_ZoomFactorChanged(Callback<ICoreWebView2ZoomFactorChangedEventHandler>(
+            [](ICoreWebView2Controller* controller, IUnknown* args) -> HRESULT
         {
-            host->put_ZoomFactor(1.0);
+            controller->put_ZoomFactor(1.0);
             return S_OK;
         }
         ).Get(), &m_controlsZoomToken));
@@ -419,8 +419,8 @@ We need to communicate the WebViews powering tabs and UI so that user interactio
 ```cpp
 HRESULT BrowserWindow::CreateBrowserControlsWebView()
 {
-    return m_uiEnv->CreateCoreWebView2Host(m_hWnd, Callback<ICoreWebView2CreateCoreWebView2HostCompletedHandler>(
-        [this](HRESULT result, ICoreWebView2Host* host) -> HRESULT
+    return m_uiEnv->CreateCoreWebView2Controller(m_hWnd, Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>(
+        [this](HRESULT result, ICoreWebView2Controller* controller) -> HRESULT
     {
         // ...
 
@@ -544,15 +544,15 @@ std::unique_ptr<Tab> Tab::CreateNewTab(HWND hWnd, ICoreWebView2Environment* env,
 
 HRESULT Tab::Init(ICoreWebView2Environment* env, bool shouldBeActive)
 {
-    return env->CreateCoreWebView2Host(m_parentHWnd, Callback<ICoreWebView2CreateCoreWebView2HostCompletedHandler>(
-        [this, shouldBeActive](HRESULT result, ICoreWebView2Host* host) -> HRESULT {
+    return env->CreateCoreWebView2Controller(m_parentHWnd, Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>(
+        [this, shouldBeActive](HRESULT result, ICoreWebView2Controller* controller) -> HRESULT {
         if (!SUCCEEDED(result))
         {
             OutputDebugString(L"Tab WebView creation failed\n");
             return result;
         }
-        m_contentHost = host;
-        BrowserWindow::CheckFailure(m_contentHost->get_CoreWebView2(&m_contentWebView), L"");
+        m_contentController = controller;
+        BrowserWindow::CheckFailure(m_contentController->get_CoreWebView2(&m_contentWebView), L"");
         BrowserWindow* browserWindow = reinterpret_cast<BrowserWindow*>(GetWindowLongPtr(m_parentHWnd, GWLP_USERDATA));
         RETURN_IF_FAILED(m_contentWebView->add_WebMessageReceived(m_messageBroker.Get(), &m_messageBrokerToken));
 
