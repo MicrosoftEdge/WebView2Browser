@@ -9,7 +9,7 @@
 class Tab
 {
 public:
-    Microsoft::WRL::ComPtr<ICoreWebView2Host> m_contentHost;
+    Microsoft::WRL::ComPtr<ICoreWebView2Controller> m_contentController;
     Microsoft::WRL::ComPtr<ICoreWebView2> m_contentWebView;
     Microsoft::WRL::ComPtr<ICoreWebView2DevToolsProtocolEventReceiver> m_securityStateChangedReceiver;
 

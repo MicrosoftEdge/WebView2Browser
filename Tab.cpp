@@ -21,15 +21,15 @@ std::unique_ptr<Tab> Tab::CreateNewTab(HWND hWnd, ICoreWebView2Environment* env,
 
 HRESULT Tab::Init(ICoreWebView2Environment* env, bool shouldBeActive)
 {
-    return env->CreateCoreWebView2Host(m_parentHWnd, Callback<ICoreWebView2CreateCoreWebView2HostCompletedHandler>(
-        [this, shouldBeActive](HRESULT result, ICoreWebView2Host* host) -> HRESULT {
+    return env->CreateCoreWebView2Controller(m_parentHWnd, Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>(
+        [this, shouldBeActive](HRESULT result, ICoreWebView2Controller* host) -> HRESULT {
         if (!SUCCEEDED(result))
         {
             OutputDebugString(L"Tab WebView creation failed\n");
             return result;
         }
-        m_contentHost = host;
-        BrowserWindow::CheckFailure(m_contentHost->get_CoreWebView2(&m_contentWebView), L"");
+        m_contentController = host;
+        BrowserWindow::CheckFailure(m_contentController->get_CoreWebView2(&m_contentWebView), L"");
         BrowserWindow* browserWindow = reinterpret_cast<BrowserWindow*>(GetWindowLongPtr(m_parentHWnd, GWLP_USERDATA));
         RETURN_IF_FAILED(m_contentWebView->add_WebMessageReceived(m_messageBroker.Get(), &m_messageBrokerToken));
 
@@ -106,5 +106,5 @@ HRESULT Tab::ResizeWebView()
     BrowserWindow* browserWindow = reinterpret_cast<BrowserWindow*>(GetWindowLongPtr(m_parentHWnd, GWLP_USERDATA));
     bounds.top += browserWindow->GetDPIAwareBound(BrowserWindow::c_uiBarHeight);
 
-    return m_contentHost->put_Bounds(bounds);
+    return m_contentController->put_Bounds(bounds);
 }
