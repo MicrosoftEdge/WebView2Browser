@@ -86,7 +86,7 @@ WebView2Browser makes use of a handful of the APIs available in WebView2. For th
 
 API | Feature(s)
 :--- | :---
-CreateCoreWebView2EnvironmentWithDetails | Used to create the environments for UI and content WebViews. Different user data directories are passed to isolate UI from web content. |
+CreateCoreWebView2EnvironmentWithOptions | Used to create the environments for UI and content WebViews. Different user data directories are passed to isolate UI from web content. |
 ICoreWebView2 | There are several WebViews in WebView2Browser and most features make use of members in this interface, the table below shows how they're used.
 ICoreWebView2DevToolsProtocolEventReceivedEventHandler | Used along with add_DevToolsProtocolEventReceived to listen for CDP security events to update the lock icon in the browser UI. |
 ICoreWebView2DevToolsProtocolEventReceiver | Used along with add_DevToolsProtocolEventReceived to listen for CDP security events to update the lock icon in the browser UI. |
@@ -133,7 +133,7 @@ The sections below describe how some of the features in WebView2Browser were imp
 
 ## The basics
 ### Set up the environment, create a WebView
-WebView2 allows you to host web content in your Windows app. It exposes the globals [CreateCoreWebView2Environment](https://docs.microsoft.com/microsoft-edge/hosting/webview2/reference/webview2.idl#createcorewebview2environment) and [CreateCoreWebView2EnvironmentWithDetails](https://docs.microsoft.com/microsoft-edge/hosting/webview2/reference/webview2.idl#createcorewebview2environmentwithdetails) from which we can create the two separate environments for the browser's UI and content.
+WebView2 allows you to host web content in your Windows app. It exposes the globals [CreateCoreWebView2Environment](https://docs.microsoft.com/microsoft-edge/hosting/webview2/reference/webview2.idl#createcorewebview2environment) and [CreateCoreWebView2EnvironmentWithOptions](https://docs.microsoft.com/microsoft-edge/hosting/webview2/reference/webview2.idl#createcorewebview2environmentwithoptions) from which we can create the two separate environments for the browser's UI and content.
 
 ```cpp
     // Get directory for user data. This will be kept separated from the
@@ -145,7 +145,7 @@ WebView2 allows you to host web content in your Windows app. It exposes the glob
     // tabs will be created from this environment and kept isolated from the
     // browser UI. This enviroment is created first so the UI can request new
     // tabs when it's ready.
-    HRESULT hr = CreateCoreWebView2EnvironmentWithDetails(nullptr, userDataDirectory.c_str(),
+    HRESULT hr = CreateCoreWebView2EnvironmentWithOptions(nullptr, userDataDirectory.c_str(),
         L"", Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
             [this](HRESULT result, ICoreWebView2Environment* env) -> HRESULT
     {
@@ -171,7 +171,7 @@ HRESULT BrowserWindow::InitUIWebViews()
 
     // Create WebView environment for browser UI. A separate data directory is
     // used to isolate the browser UI from web content requested by the user.
-    return CreateCoreWebView2EnvironmentWithDetails(nullptr, browserDataDirectory.c_str(),
+    return CreateCoreWebView2EnvironmentWithOptions(nullptr, browserDataDirectory.c_str(),
         L"", Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
             [this](HRESULT result, ICoreWebView2Environment* env) -> HRESULT
     {
