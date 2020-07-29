@@ -6,6 +6,7 @@ extendedZipContent:
     target: LICENSE
 languages: 
   - cpp
+  - javascript
 page_type: sample
 products: 
   - microsoft-edge
