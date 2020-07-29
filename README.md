@@ -1,8 +1,21 @@
+---
+description: "A web browser built with the Microsoft Edge WebView2 control."
+extendedZipContent: 
+  - 
+    path: LICENSE
+    target: LICENSE
+languages: 
+  - cpp
+page_type: sample
+products: 
+  - microsoft-edge
+urlFragment: webview2browser
+---
 # WebView2Browser
 
 A web browser built with the [Microsoft Edge WebView2](https://aka.ms/webview2) control.
 
-![WebView2Browser](screenshots/WebView2Browser.png)
+![WebView2Browser](https://raw.githubusercontent.com/MicrosoftEdge/WebView2Browser/master/screenshots/WebView2Browser.png)
 
 WebView2Browser is a sample Windows desktop application demonstrating the WebView2 control capabilities. It is built as a Win32 [Visual Studio 2019](https://visualstudio.microsoft.com/vs/) project and makes use of both C++ and JavaScript in the WebView2 environment to power its features.
 
@@ -72,7 +85,7 @@ WebView2Browser has a multi-WebView approach to integrate web content and applic
 
 The multi-WebView approach involves using two separate WebView environments (each with its own user data directory): one for the UI WebViews and the other for all content WebViews. UI WebViews (controls and options dropdown) use the UI environment while web content WebViews (one per tab) use the content environment.
 
-![Browser layout](screenshots/layout.png)
+![Browser layout](https://raw.githubusercontent.com/MicrosoftEdge/WebView2Browser/master/screenshots/layout.png)
 
 ## Features
 
