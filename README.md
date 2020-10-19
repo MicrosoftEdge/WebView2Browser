@@ -27,7 +27,7 @@ WebView2Browser shows some of the simplest uses of WebView2 -such as creating an
 * [Microsoft Edge (Chromium)](https://www.microsoftedgeinsider.com/download/) installed on a supported OS.
 * [Visual Studio](https://visualstudio.microsoft.com/vs/) with C++ support installed.
 
-The [WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/) is recommended for the installation and the minimum version is 86.0.622.11.
+The [WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/) is recommended for the installation and the minimum version is 86.0.622.38.
 
 ## Build the browser
 
