@@ -22,6 +22,8 @@ WebView2Browser is a sample Windows desktop application demonstrating the WebVie
 
 WebView2Browser shows some of the simplest uses of WebView2 -such as creating and navigating a WebView, but also some more complex workflows like using the [PostWebMessageAsJson API](https://docs.microsoft.com/microsoft-edge/webview2/reference/win32/icorewebview2#postwebmessageasjson) to communicate WebViews in separate environments. It is intended as a rich code sample to look at how you can use WebView2 APIs to build your own app.
 
+For more information, see the article in the Microsoft Edge Developer documentation: [WebView2Browser](https://docs.microsoft.com/microsoft-edge/webview2/samples/webview2browser).
+
 ## Requisites
 
 * [Microsoft Edge (Chromium)](https://www.microsoftedgeinsider.com/download/) installed on a supported OS.
