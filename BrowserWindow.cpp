@@ -488,7 +488,16 @@ HRESULT BrowserWindow::SwitchToTab(size_t tabId)
         if (previousTabIterator != m_tabs.end() && previousTabIterator->second &&
             previousTabIterator->second->m_contentController)
         {
-            RETURN_IF_FAILED(m_tabs.at(previousActiveTab)->m_contentController->put_IsVisible(FALSE));
+            auto hr = m_tabs.at(previousActiveTab)->m_contentController->put_IsVisible(FALSE);
+            if (hr == HRESULT_FROM_WIN32(ERROR_INVALID_STATE)) {
+                web::json::value jsonObj = web::json::value::parse(L"{}");
+                jsonObj[L"message"] = web::json::value(MG_CLOSE_TAB);
+                jsonObj[L"args"] = web::json::value::parse(L"{}");
+                jsonObj[L"args"][L"tabId"] = web::json::value::number(previousActiveTab);
+
+                PostJsonToWebView(jsonObj, m_controlsWebView.Get());
+            }
+            RETURN_IF_FAILED(hr);
         }
     }
 

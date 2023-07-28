@@ -126,6 +126,11 @@ const messageHandler = event => {
         case commands.MG_CLOSE_WINDOW:
             closeWindow();
             break;
+        case commands.MG_CLOSE_TAB:
+            if (isValidTabId(args.tabId)) {
+                closeTab(args.tabId);
+            }
+            break;
         case commands.MG_GET_FAVORITES:
             if (isValidTabId(args.tabId)) {
                 getFavoritesAsJson((payload) => {
