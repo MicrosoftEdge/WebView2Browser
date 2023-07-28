@@ -483,9 +483,13 @@ HRESULT BrowserWindow::SwitchToTab(size_t tabId)
     RETURN_IF_FAILED(m_tabs.at(tabId)->m_contentController->put_IsVisible(TRUE));
     m_activeTabId = tabId;
 
-    if (previousActiveTab != INVALID_TAB_ID && previousActiveTab != m_activeTabId)
-    {
-        RETURN_IF_FAILED(m_tabs.at(previousActiveTab)->m_contentController->put_IsVisible(FALSE));
+    if (previousActiveTab != INVALID_TAB_ID && previousActiveTab != m_activeTabId) {
+        auto previousTabIterator = m_tabs.find(previousActiveTab);
+        if (previousTabIterator != m_tabs.end() && previousTabIterator->second &&
+            previousTabIterator->second->m_contentController)
+        {
+            RETURN_IF_FAILED(m_tabs.at(previousActiveTab)->m_contentController->put_IsVisible(FALSE));
+        }
     }
 
     return S_OK;
