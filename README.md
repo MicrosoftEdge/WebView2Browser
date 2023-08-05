@@ -24,6 +24,8 @@ WebView2Browser shows some of the simplest uses of WebView2 -such as creating an
 
 For more information, see the article in the Microsoft Edge Developer documentation: [WebView2Browser](https://learn.microsoft.com/microsoft-edge/webview2/samples/webview2browser).
 
+For more information, see the article in the Microsoft Edge Developer documentation: [WebView2Browser](https://docs.microsoft.com/microsoft-edge/webview2/samples/webview2browser).
+
 ## Requisites
 
 * [Microsoft Edge (Chromium)](https://www.microsoftedgeinsider.com/download/) installed on a supported OS.
